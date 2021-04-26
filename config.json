@@ -1,0 +1,12 @@
+{
+   "DiscoveryScan":"Primary",
+   "SafeNet":true,
+   "PrepJump":true,
+   "JumpTries":5,
+   "RefuelThreshold":30,
+   "TerimationCountdown":120,
+   "DiscordWebhook":false,
+   "DiscordWebhookURL":"",
+   "DiscordUserID":"",
+   "DebugLog":true
+}
