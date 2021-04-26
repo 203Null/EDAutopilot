@@ -288,7 +288,7 @@ def get_latest_keybinds(path_bindings=None):
     return latest_bindings
 
 
-logging.info("get_latest_keybinds="+str(get_latest_keybinds()))
+logging.info("Current Keybinds: "+str(get_latest_keybinds()))
 
 # Extract necessary keys
 keys_to_obtain = [
@@ -383,9 +383,9 @@ def get_bindings(keysToObtain=None):
 keys = get_bindings()
 for key in keys_to_obtain:
     try:
-        logging.info('get_bindings_<'+str(key)+'>='+str(keys[key]))
+        logging.info('Binding <'+str(key)+'>: '+str(keys[key]))
     except Exception as e:
-        logging.warning(str("get_bindings_<"+key+">= does not have a valid keyboard keybind.").upper())
+        logging.warning(str("<"+key+"> does not appear to have a valid keybind. This could cause issues with the script. Please bind the key and restart the script.").upper())
 
 def getUIColor():
     origonal_bgr = [0,218,255]
@@ -435,10 +435,10 @@ def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
     global KEY_MOD_DELAY, KEY_DEFAULT_DELAY, KEY_REPEAT_DELAY
 
     if key_to_send is None:
-        logging.warning('SEND=NONE !!!!!!!!')
+        logging.warning('Attempted to send key press, but no key was provided.')
         return
 
-    logging.debug('send=key:'+str(key_to_send)+',hold:'+str(hold)+',repeat:'+str(repeat)+',repeat_delay:'+str(repeat_delay)+',state:'+str(state))
+    logging.debug('Sending key:'+str(key_to_send)+', Hold:'+str(hold)+', Repeat:'+str(repeat)+', Repeat Delay:'+str(repeat_delay)+', State:'+str(state))
     for i in range(repeat):
 
         if state is None or state == 1:
@@ -469,7 +469,7 @@ def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
 
 # Clear input
 def clear_input(to_clear=None):
-    logging.info('\n'+200*'-'+'\n'+'---- CLEAR INPUT '+183*'-'+'\n'+200*'-')
+    logging.info('\n'+20*'-'+'\n'+' CLEAR INPUT '+'\n'+20*'-'+'\n')
     send(to_clear['SetSpeedZero'])
     send(to_clear['MouseReset'])
     for key_to_clear in to_clear.keys():
@@ -886,7 +886,7 @@ def get_destination_offset(testing=False):
     while True:
         screen = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT,(2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
         mask_orange = filter_cyan(screen) #Custom color 203Null
-#         equalized = equalize(screen)
+        #equalized = equalize(screen)
         match = cv2.matchTemplate(mask_orange, destination_template, cv2.TM_CCOEFF_NORMED)
         threshold = 0.2
         loc = np.where(match >= threshold)
@@ -915,38 +915,38 @@ def get_destination_offset(testing=False):
 
 # Undock
 def undock():
-    logging.debug('undock')
+    logging.info('\n' + 20*'-' + '\n' + 'Waiting for undock' + '\n' + 20*'-' + '\n')
     if ship()['status'] != "in_station":
-        logging.error('undock=err1')
-        raise Exception('undock error 1')
+        logging.error('Undock function called while not in a station.')
+        raise Exception('Undock function called while not in a station.')
     send(keys['UI_Back'], repeat=10)
     send(keys['HeadLookReset'])
     send(keys['UI_Down'], hold=3)
     send(keys['UI_Select'])
     sleep(1)
     if not (ship()['status'] == "starting_undock" or ship()['status'] == "in_undock"):
-        logging.error('undock=err2')
-        raise Exception("undock error 2")
+        logging.error('Attempted to undock, but failed to execute properly.')
+        raise Exception("Attempted to undock, but failed to execute properly.")
     send(keys['HeadLookReset'])
     send(keys['SetSpeedZero'], repeat=2)
     wait = 120
     for i in range(wait):
         sleep(1)
         if i > wait-1:
-            logging.error('undock=err3')
-            raise Exception('undock error 3')
+            logging.error('Undocking took longer than 2 minutes. Possible error with undocking.')
+            raise Exception('Undocking took longer than 2 minutes. Possible error with undocking.')
         if ship()['status'] == "in_space":
             break
-    logging.debug('undock=complete')
+    logging.info('\n' + 20*'-' + '\n' + 'Undocking has completed successfully.' + '\n' + 20*'-' + '\n')
     return True
 
 
 # Dock
 def dock():
-    logging.debug('dock')
+    logging.info('\n' + 20*'-' + '\n' + 'Waiting to dock.' + '\n' + 20*'-' + '\n')
     if ship()['status'] != "in_space":
-        logging.error('dock=err1')
-        raise Exception('dock error 1')
+        logging.error('Attempting to dock while not in space. This is unadvised!')
+        raise Exception('Attempting to dock while not in space. This is unadvised!')
     tries = 3
     for i in range(tries):
         send(keys['UI_Back'], repeat=10)
@@ -962,8 +962,8 @@ def dock():
         if ship()['status'] == "starting_dock" or ship()['status'] == "in_dock":
             break
         if i > tries-1:
-            logging.error('dock=err2')
-            raise Exception("dock error 2")
+            logging.error('Docking sequence was unable to be started.')
+            raise Exception("Docking sequence was unable to be started.")
     send(keys['UI_Back'])
     send(keys['HeadLookReset'])
     send(keys['SetSpeedZero'], repeat=2)
@@ -971,16 +971,15 @@ def dock():
     for i in range(wait):
         sleep(1)
         if i > wait-1:
-            logging.error('dock=err3')
-            raise Exception('dock error 3')
+            logging.error('Docking took longer than 2 minutes. Possible error with docking.')
+            raise Exception('Docking took longer than 2 minutes. Possible error with docking.')
         if ship()['status'] == "in_station":
             break
     send(keys['UI_Up'], hold=3)
     send(keys['UI_Down'])
     send(keys['UI_Select'])
-    logging.debug('dock=complete')
+    logging.debug('\n' + 20*'-' + '\n' + 'Docking complete!' + '\n' + 20*'-' + '\n')
     return True
-
 
 # Align
 def x_angle(point=None):
@@ -994,16 +993,16 @@ def x_angle(point=None):
 
 prep_engaged = datetime.min
 def align():
-    logging.debug('align')
+    logging.info('\n' + 20*'-' + '\n' + 'ALIGN: Starting Align Sequence' + '\n' + 20*'-' + '\n')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
-        logging.error('align=err1')
-        sendDiscordWebhook("Align Error 1", True)
-        raise Exception('align error 1')
-    
-    logging.debug('align=speed 100')
+        logging.error('Ship was either not in supercruise or not in space when trying to align.')
+        sendDiscordWebhook("Ship was either not in supercruise or not in space when trying to align.", True)
+        raise Exception('Ship was either not in supercruise or not in space when trying to align.')
+    '\n' + 20*'-' + '\n'
+    logging.info('ALIGN: Setting speed to 100%')
     send(keys['SetSpeed100'])
 
-    logging.debug('align=avoid sun')
+    logging.info('ALIGN: Executing star avoidance maneuver.')
     while sun_percent() > 3:
         send(keys['PitchUpButton'], state=1)
     send(keys['PitchUpButton'], state=0)
@@ -1029,6 +1028,8 @@ def align():
 
     # logging.debug('align=complete')
 
+'\n' + 20*'-' + '\n'
+
 #Crude Align
 def crudeAlign():
     close = 6
@@ -1043,7 +1044,7 @@ def crudeAlign():
     ang = x_angle(off)
 
     while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (off['y'] < -close):
-        logging.debug('align=crude align')
+        logging.info('ALIGN: Executing crude jump alignment.')
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             logging.debug("Roll aligning")
             if off['x'] > close and ang > close_a:
@@ -1104,7 +1105,7 @@ def crudeAlign():
 
 #Fine Align
 def fineAlign():
-    logging.debug('align= fine align')
+    logging.info('ALIGN: Executing fine jump alignment')
     sleep(0.5)
     close = 60
     hold_pitch = 0.200
@@ -1144,12 +1145,12 @@ def fineAlign():
             return False
 
         if (off['x'] <= close) and (off['x'] >= -close) and (off['y'] <= close) and (off['y'] >= -close):
-            logging.debug('align=complete')
+            logging.debug('ALIGN: Jump alignment complete.')
             return True
 
 # Jump
 def jump():
-    logging.debug('jump')
+    logging.info('JUMP: Executing System Jump')
     # global prep_engaged
     
     if (datetime.now() - prep_engaged).seconds < 20:
@@ -1166,7 +1167,7 @@ def jump():
             sleep(1)
         logging.debug('jump=speed 0')
         send(keys['SetSpeedZero'])
-        logging.debug('jump=complete')
+        logging.info('JUMP: Jump Complete.')
         return True
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
@@ -1250,7 +1251,7 @@ def get_scanner():
 
 # Position
 def position(refueled_multiplier=1):
-    logging.debug('position')
+    logging.info('POSIT: Starting system entry positioning maneuver.')
     if config['DiscoveryScan'] == "Primary":
         logging.debug('position=scanning')
         send(keys['PrimaryFire'], hold=6)
@@ -1268,6 +1269,7 @@ def position(refueled_multiplier=1):
     sleep(5)
     send(keys['PitchUpButton'], state=0)
     sleep(5*refueled_multiplier)
+    logging.info('POSIT: System entry positioning complete.')
     return True
 
 
@@ -1297,8 +1299,8 @@ def safeNet():
             # logging.error('Ship Damage Safenet Running!')
             # logging.error(ship()['status'])
             if ship()['damaged'] == True:
-                logging.critical("Damage Detected, Exiting game")
-                sendDiscordWebhook("🔥🔥🔥Damage Detected, Exiting game🔥🔥🔥", True)
+                logging.critical("Ship Damage Detected, Exiting Game.")
+                sendDiscordWebhook("🔥🔥🔥Damage Detected, Exiting Game🔥🔥🔥", True)
                 killED()
                 return
             if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
@@ -1308,8 +1310,8 @@ def safeNet():
             sleep(1)
 
 def killED():
-    logging.critical("Tring to ternimate Elite Dangerous!!")
-    sendDiscordWebhook("🛑Tring to ternimate Elite Dangerous!!🛑", True)
+    logging.critical("Trying to ternimate Elite Dangerous!!")
+    sendDiscordWebhook("🛑Trying to ternimate Elite Dangerous!!🛑", True)
     for i in range(10):
         system("TASKKILL /F /IM EliteDangerous64.exe")
 
@@ -1333,9 +1335,9 @@ def autopilot():
         sendDiscordWebhook("▶️Autopilot Engaged!")
         while ship()['target']:
             if ship()['status'] == 'in_space' or ship()['status'] == 'in_supercruise':
-                logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT ALIGN '+179*'-'+'\n'+200*'-')
+                logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT ALIGN' + '\n' + 20*'-' + '\n')
                 align()
-                logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT JUMP '+180*'-'+'\n'+200*'-')
+                logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT JUMP' + '\n' + 20*'-' + '\n')
                 jump()
 
                 ship_status = ship()
@@ -1350,15 +1352,15 @@ def autopilot():
                     seconds = time_token % 60
                     sendDiscordWebhook("🏁Jump #%d completed, now arriving at your destination %s. %2f LYs has been covered by EDAutopilot over %d hours %d minutes and %d seconds (%.2f jumps per hour)" % (jump_count, ship_status['location'], total_dist_jumped, hours, minutes, seconds, jump_count / (time_token/3600)))
                 
-                logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT REFUEL '+178*'-'+'\n'+200*'-')
+                logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20*'-' + '\n')
                 refueled = refuel()
-                logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT POSIT '+179*'-'+'\n'+200*'-')
+                logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20*'-' + '\n')
                 if refueled:
                     position(refueled_multiplier=4)
                 else:
                     position(refueled_multiplier=1)
         send(keys['SetSpeedZero'])
-        logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT END '+181*'-'+'\n'+200*'-')
+        logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT END' + '\n' + 20*'-' + '\n')
         logging.info("Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
         sendDiscordWebhook("⏹️Autopilot Disengaged! Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
         for i in range(config['TerimationCountdown']):
@@ -1369,8 +1371,8 @@ def autopilot():
         # stop_action() #Stop SafeNet
     finally:
         if autopilot_completed == False:
-            logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT MANUALLY DISENGED '+181*'-'+'\n'+200*'-')
-            sendDiscordWebhook("⏹️Autopilot Manually Disengaged!")
+            logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT DISENGED' + '\n' + 20*'-' + '\n')
+            sendDiscordWebhook("⏹️Autopilot Disengaged!")
 
 def sendDiscordWebhook(content, atOwner = False):
     if config['DiscordWebhook']:
