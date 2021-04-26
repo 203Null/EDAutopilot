@@ -426,7 +426,7 @@ def getUIColor():
     return [new_blue, new_green, new_red]
 
 ui_color = getUIColor()
-logging.info('UI_COLOR='+str(ui_color))
+logging.info('UI_COLOR: '+str(ui_color))
 
 # Direct input function
 
@@ -691,7 +691,7 @@ def filter_cyan(image=None, testing=False):
 
 # Filter ui color
 ui_color_hue = cv2.cvtColor(np.uint8([[ui_color]]), cv2.COLOR_BGR2HSV)[0][0][0]
-logging.info("UI Color color detected - Hue %d" % (ui_color_hue * 2))
+logging.info("UI_COLOR_HUE: %d" % (ui_color_hue * 2))
 ui_color_lower = [ui_color_hue - 15, 100, 100]
 ui_color_upper = [ui_color_hue + 15, 255, 255]
 def filter_ui(image=None, testing=False):
@@ -1154,7 +1154,7 @@ def jump():
     # global prep_engaged
     
     if (datetime.now() - prep_engaged).seconds < 20:
-        logging.info("Preped jump detected. %d seconds remaining" % (datetime.now() - prep_engaged).seconds)
+        logging.info("JUMP: Preped jump detected. %d seconds remaining" % (datetime.now() - prep_engaged).seconds)
 
     while (datetime.now() - prep_engaged).seconds < 20 and ship()['status'] != 'starting_hyperspace':
         sleep(1)
@@ -1172,7 +1172,7 @@ def jump():
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
     for i in range(config['JumpTries']):
-        logging.info('Hyperspace Jump attempt #'+str(i))
+        logging.info('JUMP: Hyperspace Jump attempt #'+str(i))
         if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
             logging.error('jump=err1')
             sendDiscordWebhook("❌ FSD Jump Failed", True)
@@ -1298,7 +1298,7 @@ def position(refueled_multiplier=1):
 
 def safeNet():
     if config['SafeNet']:
-        logging.info('Ship Damage Safenet Activated!')
+        logging.info('SAFENET: Ship Damage Safenet Activated!')
         last_ship_status = ship()['status']
         while(True):
             # logging.error('Ship Damage Safenet Running!')
@@ -1349,13 +1349,13 @@ def autopilot():
                 total_dist_jumped += ship_status['dist_jumped']
                 jump_count += 1
                 if ship_status['target']:
-                    sendDiscordWebhook("🚦 Jump #%d completed, now arriving at %s With an average speed of %.2f jumps/hr. %.2f LYs has been covered by EDAutopilot and %d jumps left to go." % (jump_count, ship_status['location'], ship_status['speed'], total_dist_jumped, ship_status['jumps_remains']))
+                    sendDiscordWebhook("🚦 Jump #%d completed, now arriving at %s With an average speed of %.2f jumps/hr. %.2f LYs has been covered and %d jumps left to go." % (jump_count, ship_status['location'], ship_status['speed'], total_dist_jumped, ship_status['jumps_remains']))
                 else:
                     time_token = (datetime.utcnow() - autopilot_start_time).seconds
                     hours = time_token // 3600
                     minutes = time_token % 3600 // 60
                     seconds = time_token % 60
-                    sendDiscordWebhook("🏁 Jump #%d completed, now arriving at your destination %s. %2f LYs has been covered by EDAutopilot over %d hours %d minutes and %d seconds (%.2f jumps per hour)" % (jump_count, ship_status['location'], total_dist_jumped, hours, minutes, seconds, jump_count / (time_token/3600)))
+                    sendDiscordWebhook("🏁 Jump #%d completed, now arriving at your destination %s. %2f LYs has been covered over %d hours %d minutes and %d seconds (%.2f jumps per hour)" % (jump_count, ship_status['location'], total_dist_jumped, hours, minutes, seconds, jump_count / (time_token/3600)))
                 
                 logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20*'-' + '\n')
                 refueled = refuel()
@@ -1366,7 +1366,7 @@ def autopilot():
                     position(refueled_multiplier=1)
         send(keys['SetSpeedZero'])
         logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT END' + '\n' + 20*'-' + '\n')
-        logging.info("Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
+        logging.critical("Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
         sendDiscordWebhook("⏹️ Autopilot Disengaged! Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
         for i in range(config['TerimationCountdown']):
             sleep(1)
