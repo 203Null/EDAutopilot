@@ -1150,7 +1150,7 @@ def fineAlign():
 
 # Jump
 def jump():
-    logging.info('JUMP: Executing System Jump')
+    logging.info('JUMP: Executing Hyperspace Jump')
     # global prep_engaged
     
     if (datetime.now() - prep_engaged).seconds < 20:
@@ -1253,10 +1253,10 @@ def position(refueled_multiplier=1):
     logging.info('POSIT: Starting system entry positioning maneuver.')
     if config['DiscoveryScan'] == "Primary":
         logging.debug('position=scanning')
-        send(keys['PrimaryFire'], hold=6)
+        send(keys['PrimaryFire'], state=1)
     elif config['DiscoveryScan'] == "Secondary":
         logging.debug('position=scanning')
-        send(keys['SecondaryFire'], hold=6)
+        send(keys['SecondaryFire'], state=1)
     
     send(keys['PitchUpButton'], state=1)
     sleep(5)
@@ -1269,6 +1269,12 @@ def position(refueled_multiplier=1):
     send(keys['PitchUpButton'], state=0)
     sleep(5*refueled_multiplier)
     logging.info('POSIT: System entry positioning complete.')
+    if config['DiscoveryScan'] == "Primary":
+        logging.debug('position=scanning')
+        send(keys['PrimaryFire'], state=0)
+    elif config['DiscoveryScan'] == "Secondary":
+        logging.debug('position=scanning')
+        send(keys['SecondaryFire'], state=0)
     return True
 
 
