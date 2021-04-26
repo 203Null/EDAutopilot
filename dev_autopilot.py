@@ -995,9 +995,9 @@ prep_engaged = datetime.min
 def align():
     logging.info('\n' + 20*'-' + '\n' + 'ALIGN: Starting Align Sequence' + '\n' + 20*'-' + '\n')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
-        logging.error('Ship was either not in supercruise or not in space when trying to align.')
-        sendDiscordWebhook("Ship was either not in supercruise or not in space when trying to align.", True)
-        raise Exception('Ship was either not in supercruise or not in space when trying to align.')
+        logging.error('Ship align failed.')
+        sendDiscordWebhook("❌ Ship align failed.", True)
+        raise Exception('align failed.')
     '\n' + 20*'-' + '\n'
     logging.info('ALIGN: Setting speed to 100%')
     send(keys['SetSpeed100'])
@@ -1172,7 +1172,7 @@ def jump():
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
     for i in range(config['JumpTries']):
-        logging.debug('jump=try:'+str(i))
+        logging.info('Hyperspace Jump attempt #'+str(i))
         if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
             logging.error('jump=err1')
             sendDiscordWebhook("❌ FSD Jump Failed", True)
@@ -1299,18 +1299,18 @@ def safeNet():
             # logging.error(ship()['status'])
             if ship()['damaged'] == True:
                 logging.critical("Ship Damage Detected, Exiting Game.")
-                sendDiscordWebhook("🔥🔥🔥Damage Detected, Exiting Game🔥🔥🔥", True)
+                sendDiscordWebhook("🔥🔥🔥 Damage Detected, Exiting Game 🔥🔥🔥", True)
                 killED()
                 return
             if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
                 logging.critical("Ship dropped from supercurise")
-                sendDiscordWebhook("❌Ship dropped from supercurise. Action required", True)
+                sendDiscordWebhook("❌ Ship dropped from supercurise. Action required", True)
             last_ship_status = ship()['status']
             sleep(1)
 
 def killED():
     logging.critical("Trying to ternimate Elite Dangerous!!")
-    sendDiscordWebhook("🛑Trying to ternimate Elite Dangerous!!🛑", True)
+    sendDiscordWebhook("🛑 Trying to ternimate Elite Dangerous!! 🛑", True)
     for i in range(10):
         system("TASKKILL /F /IM EliteDangerous64.exe")
 
@@ -1331,7 +1331,7 @@ def autopilot():
         global autopilot_start_time
         autopilot_start_time = datetime.utcnow()
     
-        sendDiscordWebhook("▶️Autopilot Engaged!")
+        sendDiscordWebhook("▶️ Autopilot Engaged!")
         while ship()['target']:
             if ship()['status'] == 'in_space' or ship()['status'] == 'in_supercruise':
                 logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT ALIGN' + '\n' + 20*'-' + '\n')
@@ -1343,13 +1343,13 @@ def autopilot():
                 total_dist_jumped += ship_status['dist_jumped']
                 jump_count += 1
                 if ship_status['target']:
-                    sendDiscordWebhook("🚦Jump #%d completed, now arriving at %s With an average speed of %.2f jumps/hr. %.2f LYs has been covered by EDAutopilot and %d jumps left to go." % (jump_count, ship_status['location'], ship_status['speed'], total_dist_jumped, ship_status['jumps_remains']))
+                    sendDiscordWebhook("🚦 Jump #%d completed, now arriving at %s With an average speed of %.2f jumps/hr. %.2f LYs has been covered by EDAutopilot and %d jumps left to go." % (jump_count, ship_status['location'], ship_status['speed'], total_dist_jumped, ship_status['jumps_remains']))
                 else:
                     time_token = (datetime.utcnow() - autopilot_start_time).seconds
                     hours = time_token // 3600
                     minutes = time_token % 3600 // 60
                     seconds = time_token % 60
-                    sendDiscordWebhook("🏁Jump #%d completed, now arriving at your destination %s. %2f LYs has been covered by EDAutopilot over %d hours %d minutes and %d seconds (%.2f jumps per hour)" % (jump_count, ship_status['location'], total_dist_jumped, hours, minutes, seconds, jump_count / (time_token/3600)))
+                    sendDiscordWebhook("🏁 Jump #%d completed, now arriving at your destination %s. %2f LYs has been covered by EDAutopilot over %d hours %d minutes and %d seconds (%.2f jumps per hour)" % (jump_count, ship_status['location'], total_dist_jumped, hours, minutes, seconds, jump_count / (time_token/3600)))
                 
                 logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20*'-' + '\n')
                 refueled = refuel()
@@ -1361,7 +1361,7 @@ def autopilot():
         send(keys['SetSpeedZero'])
         logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT END' + '\n' + 20*'-' + '\n')
         logging.info("Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
-        sendDiscordWebhook("⏹️Autopilot Disengaged! Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
+        sendDiscordWebhook("⏹️ Autopilot Disengaged! Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
         for i in range(config['TerimationCountdown']):
             sleep(1)
         killED()
@@ -1371,7 +1371,7 @@ def autopilot():
     finally:
         if autopilot_completed == False:
             logging.info('\n' + 20*'-' + '\n' + 'AUTOPILOT DISENGED' + '\n' + 20*'-' + '\n')
-            sendDiscordWebhook("⏹️Autopilot Disengaged!")
+            sendDiscordWebhook("⏹️ Autopilot Disengaged!")
 
 def sendDiscordWebhook(content, atOwner = False):
     if config['DiscordWebhook']:
