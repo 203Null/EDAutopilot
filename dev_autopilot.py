@@ -55,7 +55,7 @@ config = dict(DiscoveryScan="Primary",
                 DiscordWebhook=False,
                 DiscordWebhookURL="",
                 DiscordUserID="",
-                DebugLog=True,
+                DebugLog=False,
                 )
 
 

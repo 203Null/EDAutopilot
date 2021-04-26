@@ -8,5 +8,5 @@
    "DiscordWebhook":false,
    "DiscordWebhookURL":"",
    "DiscordUserID":"",
-   "DebugLog":true
+   "DebugLog":false
 }
