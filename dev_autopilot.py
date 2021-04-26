@@ -1176,7 +1176,6 @@ def jump():
         if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
             logging.error('jump=err1')
             sendDiscordWebhook("❌ FSD Jump Failed", True)
-            sendDiscordWebhook("Ship status: %s" % ship()['status'], True)
             raise Exception('not ready to jump')
         sleep(0.5)
         logging.debug('jump=start fsd')
