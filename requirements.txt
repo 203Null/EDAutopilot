@@ -7,3 +7,4 @@ PyAutoGUI==0.9.42
 kthread==0.2.2
 keyboard==0.13.3
 Pillow==7.1.1
+discord-webhook==0.13.0

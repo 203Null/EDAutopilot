@@ -5,11 +5,9 @@ import kthread
 from PIL import Image
 from pystray import Icon, MenuItem, Menu
 
-from dev_autopilot import autopilot, resource_path, get_bindings, clear_input, set_scanner
+from dev_autopilot import autopilot, resource_path, get_bindings, clear_input, set_scanner, checkDamage, killED
 
-STATE = 0
-icon = None
-thread = None
+STATE = 1
 
 def setup(icon):
     icon.visible = True
@@ -20,17 +18,29 @@ def exit_action():
     icon.visible = False
     icon.stop()
 
-
+threads = []
 def start_action():
     stop_action()
-    kthread.KThread(target=autopilot, name="EDAutopilot").start()
+    
+    t1 = kthread.KThread(target=autopilot, name="EDAutopilot")
+    t1.start()
+    threads.append(t1)
+    t2 = kthread.KThread(target=checkDamage, name="EDAutopilot_checkDamage")
+    t2.start()
+    threads.append(t2)
 
 
 def stop_action():
-    for thread in threading.enumerate():
-        if thread.getName() == 'EDAutopilot':
-            thread.kill()
+    global threads
+    for thread in threads:
+        # print(thread.getName())
+        # print(("Dead", "Alive")[thread.is_alive()])
+        while(thread.is_alive()):
+            thread.terminate()
+            # print(("Dead", "Alive")[thread.is_alive()])
+        # print("-----------------------")
     clear_input(get_bindings())
+    threads = []
 
 
 def set_state(v):
@@ -59,30 +69,31 @@ def tray():
     logo = Image.open(resource_path('src/logo.png'))
     icon.icon = logo
 
-    icon.menu = Menu(
-        MenuItem(
-            'Scan Off',
-            set_state(0),
-            checked=get_state(0),
-            radio=True
-        ),
-        MenuItem(
-            'Scan on Primary Fire',
-            set_state(1),
-            checked=get_state(1),
-            radio=True
-        ),
-        MenuItem(
-            'Scan on Secondary Fire',
-            set_state(2),
-            checked=get_state(2),
-            radio=True
-        ),
-        MenuItem('Exit', lambda: exit_action())
-    )
+    # icon.menu = Menu(
+    #     MenuItem(
+    #         'Scan Off',
+    #         set_state(0),
+    #         checked=get_state(0),
+    #         radio=True
+    #     ),
+    #     MenuItem(
+    #         'Scan on Primary Fire',
+    #         set_state(1),
+    #         checked=get_state(1), 
+    #         radio=True
+    #     ),
+    #     MenuItem(
+    #         'Scan on Secondary Fire',
+    #         set_state(2),
+    #         checked=get_state(2),
+    #         radio=True
+    #     ),
+    #     MenuItem('Exit', lambda: exit_action())
+    # )
 
     keyboard.add_hotkey('page up', start_action)
     keyboard.add_hotkey('page down', stop_action)
+    keyboard.add_hotkey('end', killED)
 
     icon.run(setup)
 
