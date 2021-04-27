@@ -1040,8 +1040,6 @@ def align():
 
     # logging.debug('align=complete')
 
-'\n' + 20*'-' + '\n'
-
 #Crude Align
 def crudeAlign():
     close = 6
@@ -1054,9 +1052,9 @@ def crudeAlign():
     send(keys['PitchUpButton'], state=0)
 
     ang = x_angle(off)
-
+    logging.info('ALIGN: Executing crude jump alignment.')
     while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (off['y'] < -close):
-        logging.info('ALIGN: Executing crude jump alignment.')
+    
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             logging.debug("Roll aligning")
             if off['x'] > close and ang > close_a:
