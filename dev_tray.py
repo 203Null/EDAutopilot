@@ -25,7 +25,7 @@ def start_action():
     t1 = kthread.KThread(target=autopilot, name="EDAutopilot")
     t1.start()
     threads.append(t1)
-    t2 = kthread.KThread(target=checkDamage, name="EDAutopilot_SafeNet")
+    t2 = kthread.KThread(target=safeNet, name="EDAutopilot_SafeNet")
     t2.start()
     threads.append(t2)
 
