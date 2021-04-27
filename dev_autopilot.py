@@ -307,7 +307,7 @@ keys_to_obtain = [
     'PitchUpButton',
     'PitchDownButton',
     'SetSpeedZero',
-    'SetSpeed25',
+    # 'SetSpeed25',
     'SetSpeed100',
     'HyperSuperCombination',
     'UIFocus',
