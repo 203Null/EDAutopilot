@@ -5,7 +5,7 @@ import kthread
 from PIL import Image
 from pystray import Icon, MenuItem, Menu
 
-from dev_autopilot import autopilot, resource_path, get_bindings, clear_input, set_scanner, checkDamage, killED
+from dev_autopilot import autopilot, resource_path, get_bindings, clear_input, set_scanner, safeNet, killED
 
 STATE = 1
 
@@ -25,7 +25,7 @@ def start_action():
     t1 = kthread.KThread(target=autopilot, name="EDAutopilot")
     t1.start()
     threads.append(t1)
-    t2 = kthread.KThread(target=checkDamage, name="EDAutopilot_checkDamage")
+    t2 = kthread.KThread(target=checkDamage, name="EDAutopilot_SafeNet")
     t2.start()
     threads.append(t2)
 

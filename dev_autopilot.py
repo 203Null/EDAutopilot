@@ -23,7 +23,7 @@ import math
 import random as rand
 import sys
 from datetime import datetime
-from json import loads
+from json import load, loads, dump
 from os import environ, listdir, system
 from os.path import join, isfile, getmtime, abspath, exists
 from time import sleep
@@ -116,9 +116,14 @@ logging.info('FUNCTION_DEFAULT_DELAY='+str(FUNCTION_DEFAULT_DELAY))
 logging.info('SCREEN_WIDTH='+str(SCREEN_WIDTH))
 logging.info('SCREEN_HEIGHT='+str(SCREEN_HEIGHT))
 
-# Variables
-global autopilot_start_time
-autopilot_start_time = datetime.now()
+
+# def get_config():
+if exists('config.json'):
+    with open('config.json') as json_file:
+        config = load(json_file)
+else:
+    with open('config.json', 'w') as json_file:
+        dump(config, json_file)
 
 
 # Read ED logs
@@ -144,6 +149,7 @@ def timeStampToLocalTime(timestamp):
 # Extract ship info from log
 # statusCache = None
 # statusCacheTime = None
+autopilot_start_time = datetime.max
 def ship():
     """Returns a 'status' dict containing relevant game status information (state, fuel, ...)"""
     latest_log = get_latest_log(PATH_LOG_FILES)
@@ -250,7 +256,7 @@ def ship():
                     timestamp = timeStampToLocalTime(log['timestamp'])
                     if timestamp > autopilot_start_time:
                         seconds_ago = (datetime.utcnow()-timestamp).seconds
-                        if seconds_ago < 3600:
+                        if seconds_ago < 900: #15min
                             jumps_lastHr.append(seconds_ago)
 
                     if ship_status['location'] == ship_status['target']:
@@ -330,7 +336,8 @@ def get_bindings(keysToObtain=None):
         'Key_RightAlt': 'RAlt',
         'Key_LeftControl': 'LControl',
         'Key_RightControl': 'RControl',
-        'Key_RightBracket': 'RBracket'
+        'Key_RightBracket': 'RBracket',
+        'Key_LeftBracket': 'LBracket'
     }
 
     latest_bindings = get_latest_keybinds()
@@ -999,7 +1006,7 @@ def x_angle(point=None):
 prep_engaged = datetime.min
 def align():
     logging.info('ALIGN: Starting Align Sequence')
-    if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space'):
+    if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
         logging.error('Ship was either not in supercruise or not in space when trying to align.')
         sendDiscordWebhook("Ship was either not in supercruise or not in space when trying to align.", True)
         raise Exception('Ship was either not in supercruise or not in space when trying to align.')
@@ -1178,10 +1185,10 @@ def jump():
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
     for i in range(config['JumpTries']):
         logging.debug('jump=try:'+str(i))
-        if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space'):
-            logging.error('Ship ')
+        if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
+            logging.error('FSD Jump Failed')
             sendDiscordWebhook("❌ FSD Jump Failed", True)
-            raise Exception('not ready to jump')
+            raise Exception('FSD Jump Failed')
         sleep(0.5)
         logging.debug('jump=start fsd')
         send(keys['HyperSuperCombination'], hold=1)
@@ -1258,10 +1265,10 @@ def position(refueled_multiplier=1):
     logging.info('POSIT: Starting system entry positioning maneuver.')
     if config['DiscoveryScan'] == "Primary":
         logging.info('POSIT: Scanning system.')
-        send(keys['PrimaryFire'], hold=3.5)
+        send(keys['PrimaryFire'], hold=6)
     elif config['DiscoveryScan'] == "Secondary":
         logging.info('POSIT: Scanning system.')
-        send(keys['SecondaryFire'], hold=3.5)
+        send(keys['SecondaryFire'], hold=6)
     
     send(keys['PitchUpButton'], state=1)
     sleep(5)
@@ -1295,15 +1302,22 @@ def position(refueled_multiplier=1):
 # 
 # 'in-docking'
 
-def checkDamage():
+def safeNet():
     if config['SafeNet']:
         logging.info('Ship Damage Safenet Activated!')
+        last_ship_status = ship()['status']
         while(True):
+            # logging.error('Ship Damage Safenet Running!')
+            # logging.error(ship()['status'])
             if ship()['damaged'] == True:
                 logging.critical("Ship Damage Detected, Exiting Game.")
                 sendDiscordWebhook("🔥🔥🔥Damage Detected, Exiting Game🔥🔥🔥", True)
                 killED()
                 return
+            if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
+                logging.critical("Ship dropped from supercurise")
+                sendDiscordWebhook("❌Ship dropped from supercurise. Action required", True)
+            last_ship_status = ship()['status']
             sleep(1)
 
 def killED():
@@ -1327,7 +1341,7 @@ def autopilot():
         autopilot_completed = False
 
         global autopilot_start_time
-        autopilot_start_time = datetime.now()
+        autopilot_start_time = datetime.utcnow()
     
         sendDiscordWebhook("▶️Autopilot Engaged!")
         while ship()['target']:
@@ -1343,7 +1357,7 @@ def autopilot():
                 if ship_status['target']:
                     sendDiscordWebhook("🚦Jump #%d completed, now arriving at %s With an average speed of %.2f jumps/hr. %.2f LYs has been covered by EDAutopilot and %d jumps left to go." % (jump_count, ship_status['location'], ship_status['speed'], total_dist_jumped, ship_status['jumps_remains']))
                 else:
-                    time_token = (datetime.now() - autopilot_start_time).seconds
+                    time_token = (datetime.utcnow() - autopilot_start_time).seconds
                     hours = time_token // 3600
                     minutes = time_token % 3600 // 60
                     seconds = time_token % 60
