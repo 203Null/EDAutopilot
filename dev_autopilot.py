@@ -93,7 +93,8 @@ logger.debug('This is a DEBUG message. These information is usually used for tro
 logger.info('This is an INFO message. These information is usually used for conveying information')
 logger.warning('some warning message. These information is usually used for warning')
 logger.error('some error message. These information is usually used for errors and should not happen')
-logger.critical('some critical message. These information is usually used for critical error, and will usually result in an exception.')
+logger.critical('some critical message. These information is usually used for critical error and will usually result in an exception')
+
 logging.info('\n'+20*'-'+'\n'+'AUTOPILOT DATA ' + '\n'+20*'-'+'\n')
 
 # Constants
@@ -228,7 +229,7 @@ def ship():
                     ship_status['fuel_percent'] = 10
 
                 # parse scoop
-                if log_event == 'FuelScoop' and ship_status['time'] < 10 and ship_status['fuel_percent'] < 100:
+                if log_event == 'FuelScoop' and (datetime.utcnow()-timeStampToLocalTime(log['timestamp'])).seconds < 10 and ship_status['fuel_percent'] < 100:
                     ship_status['is_scooping'] = True
                 else:
                     ship_status['is_scooping'] = False
@@ -438,7 +439,7 @@ def getUIColor():
     return [new_blue, new_green, new_red]
 
 ui_color = getUIColor()
-logging.info('UI_COLOR: '+str(ui_color))
+logging.info('UI Color: '+str(ui_color))
 
 # Direct input function
 
@@ -703,7 +704,7 @@ def filter_cyan(image=None, testing=False):
 
 # Filter ui color
 ui_color_hue = cv2.cvtColor(np.uint8([[ui_color]]), cv2.COLOR_BGR2HSV)[0][0][0]
-logging.info("UI_COLOR_HUE: %d" % (ui_color_hue * 2))
+logging.info("UI Color Hue: %d" % (ui_color_hue * 2))
 ui_color_lower = [ui_color_hue - 15, 100, 100]
 ui_color_upper = [ui_color_hue + 15, 255, 255]
 def filter_ui(image=None, testing=False):
@@ -929,8 +930,8 @@ def get_destination_offset(testing=False):
 def undock():
     logging.info('\n' + 20*'-' + '\n' + 'Waiting for undock' + '\n' + 20*'-' + '\n')
     if ship()['status'] != "in_station":
-        logging.error('Undock function called while not in a station.')
-        raise Exception('Undock function called while not in a station.')
+        logging.error('Undock function called while not in a station')
+        raise Exception('Undock function called while not in a station')
     send(keys['UI_Back'], repeat=10)
     send(keys['HeadLookReset'])
     send(keys['UI_Down'], hold=3)
@@ -945,11 +946,11 @@ def undock():
     for i in range(wait):
         sleep(1)
         if i > wait-1:
-            logging.error('Undocking took longer than 2 minutes. Possible error with undocking.')
-            raise Exception('Undocking took longer than 2 minutes. Possible error with undocking.')
+            logging.error('Undocking took longer than 2 minutes, possible error with undocking.')
+            raise Exception('Undocking took longer than 2 minutes, possible error with undocking.')
         if ship()['status'] == "in_space":
             break
-    logging.info('\n' + 20*'-' + '\n' + 'Undocking has completed successfully.' + '\n' + 20*'-' + '\n')
+    logging.info('\n' + 20*'-' + '\n' + 'Undocked successfully.' + '\n' + 20*'-' + '\n')
     return True
 
 
@@ -1007,14 +1008,14 @@ prep_engaged = datetime.min
 def align():
     logging.info('ALIGN: Starting Align Sequence')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
-        logging.error('Ship align failed.')
-        sendDiscordWebhook("❌ Ship align failed.", True)
-        raise Exception('align failed.')
+        logging.error('Ship align failed')
+        sendDiscordWebhook("❌ Ship align failed", True)
+        raise Exception('align failed')
     '\n' + 20*'-' + '\n'
     logging.info('ALIGN: Setting speed to 100%')
     send(keys['SetSpeed100'])
 
-    logging.info('ALIGN: Executing star avoidance maneuver.')
+    logging.info('ALIGN: Executing star avoidance maneuver')
     while sun_percent() > 3:
         send(keys['PitchUpButton'], state=1)
     send(keys['PitchUpButton'], state=0)
@@ -1054,7 +1055,6 @@ def crudeAlign():
     ang = x_angle(off)
     logging.info('ALIGN: Executing crude jump alignment.')
     while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (off['y'] < -close):
-    
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             logging.debug("Roll aligning")
             if off['x'] > close and ang > close_a:
@@ -1155,7 +1155,7 @@ def fineAlign():
             return False
 
         if (off['x'] <= close) and (off['x'] >= -close) and (off['y'] <= close) and (off['y'] >= -close):
-            logging.debug('ALIGN: Jump alignment complete.')
+            logging.debug('ALIGN: Jump alignment complete')
             return True
 
 # Jump
@@ -1172,12 +1172,12 @@ def jump():
     # sleep(8)
 
     if ship()['status'] == 'starting_hyperspace':
-        logging.debug('jump=in jump')
+        logging.info('JUMP: Hyperspace Jump in Progress')
         while ship()['status'] != 'in_supercruise':
             sleep(1)
         logging.debug('jump=speed 0')
         send(keys['SetSpeedZero'])
-        logging.info('JUMP: Jump Complete.')
+        logging.info('JUMP: Jump Complete')
         return True
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
@@ -1211,7 +1211,7 @@ def jump():
 
 # Refuel
 def refuel(refuel_threshold=config['RefuelThreshold']):
-    logging.info('Executing refueling maneuvers ')
+    logging.info('Executing fuel scooping maneuvers')
     scoopable_stars = ['F', 'O', 'G', 'K', 'B', 'A', 'M']
     if ship()['status'] != 'in_supercruise':
         logging.error('refuel=err1')
@@ -1223,11 +1223,16 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
         send(keys['SetSpeed100'])
         sendDiscordWebhook("⛽⌛ Fuel Scooping")
         logging.debug('refuel=wait for refuel')
-        # while ship()['is_scooping'] is False:
-        #     sleep(0.05)
-        # logging.debug('refuel=scooping detected')
         sleep(4)
         send(keys['SetSpeedZero'], repeat=3)
+        # sleep(5)
+        # while ship()['is_scooping'] is False:
+        #     send(keys['SetSpeed100'])
+        #     sleep(1)
+        #     send(keys['SetSpeedZero'], repeat=3)
+        #     sleep(5)
+        logging.debug('refuel=scooping detected')
+
         while not ship()['fuel_percent'] == 100:
             sleep(1)
         sendDiscordWebhook("⛽✔️ Fuel Scoop Complete")
@@ -1260,7 +1265,7 @@ def get_scanner():
 
 # Position
 def position(refueled_multiplier=1):
-    logging.info('POSIT: Starting system entry positioning maneuver.')
+    logging.info('POSIT: Starting system entry positioning maneuver')
     if config['DiscoveryScan'] == "Primary":
         logging.info('POSIT: Scanning system.')
         send(keys['PrimaryFire'], state=1)
@@ -1278,7 +1283,7 @@ def position(refueled_multiplier=1):
     sleep(5)
     send(keys['PitchUpButton'], state=0)
     sleep(5*refueled_multiplier)
-    logging.info('POSIT: System entry positioning complete.')
+    logging.info('POSIT: System entry positioning complete')
     if config['DiscoveryScan'] == "Primary":
         logging.debug('position=scanning')
         send(keys['PrimaryFire'], state=0)

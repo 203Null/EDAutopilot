@@ -24,9 +24,11 @@ def start_action():
     
     t1 = kthread.KThread(target=autopilot, name="EDAutopilot")
     t1.start()
+    t1.isAlive = t1.is_alive #KThread workaround
     threads.append(t1)
     t2 = kthread.KThread(target=safeNet, name="EDAutopilot_SafeNet")
     t2.start()
+    t1.isAlive = t1.is_alive
     threads.append(t2)
 
 
