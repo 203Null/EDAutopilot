@@ -94,7 +94,8 @@ logger.info('This is an INFO message. These information is usually used for conv
 logger.warning('some warning message. These information is usually used for warning')
 logger.error('some error message. These information is usually used for errors and should not happen')
 logger.critical('some critical message. These information is usually used for critical error and will usually result in an exception')
-logging.info('\n'+200*'-'+'\n'+'---- AUTOPILOT DATA '+180*'-'+'\n'+200*'-')
+
+logging.info('\n'+20*'-'+'\n'+'AUTOPILOT DATA ' + '\n'+20*'-'+'\n')
 
 # Constants
 RELEASE = 'v19.05.15-alpha-18'
@@ -124,6 +125,7 @@ if exists('config.json'):
 else:
     with open('config.json', 'w') as json_file:
         dump(config, json_file)
+
 
 # Read ED logs
 
@@ -242,9 +244,15 @@ def ship():
                 if log_event == 'FSDTarget':
                     if log['Name'] == ship_status['location']:
                         ship_status['target'] = None
+                        ship_status['jumps_remains'] = 0
                     else:
                         ship_status['target'] = log['Name']
-                    ship_status['jumps_remains']  = log['RemainingJumpsInRoute']
+                        try:
+                            ship_status['jumps_remains'] = log['RemainingJumpsInRoute']
+                        except KeyError:
+                            ship_status['jumps_remains'] = 0
+                            logging.warning('Log did not have jumps remaining. This seems to happen most when you have less than 3 jumps remaining. Jumps remaining will be inaccurate for this jump.')
+                    
                 elif log_event == 'FSDJump':
                     timestamp = timeStampToLocalTime(log['timestamp'])
                     if timestamp > autopilot_start_time:
@@ -328,7 +336,9 @@ def get_bindings(keysToObtain=None):
         'Key_LeftAlt': 'LAlt',
         'Key_RightAlt': 'RAlt',
         'Key_LeftControl': 'LControl',
-        'Key_RightControl': 'RControl'
+        'Key_RightControl': 'RControl',
+        'Key_RightBracket': 'RBracket',
+        'Key_LeftBracket': 'LBracket'
     }
 
     latest_bindings = get_latest_keybinds()
@@ -363,14 +373,17 @@ def get_bindings(keysToObtain=None):
                 mod = mod[4:]
             # Prepare final binding
             binding = None
-            if new_key is not None:
-                binding = {'pre_key': 'DIK_'+new_key.upper()}
-                binding['key'] = SCANCODE[binding['pre_key']]
-                if mod is not None:
-                    binding['pre_mod'] = 'DIK_'+mod.upper()
-                    binding['mod'] = SCANCODE[binding['pre_mod']]
-            if binding is not None:
-                direct_input_keys[item.tag] = binding
+            try:
+                if new_key is not None:
+                    binding = {'pre_key': 'DIK_'+new_key.upper()}
+                    binding['key'] = SCANCODE[binding['pre_key']]
+                    if mod is not None:
+                        binding['pre_mod'] = 'DIK_'+mod.upper()
+                        binding['mod'] = SCANCODE[binding['pre_mod']]
+                if binding is not None:
+                    direct_input_keys[item.tag] = binding
+            except Exception as e:
+                logging.error('<' + new_key + '> is most likely an unusable keybind. Please rebind and restart the script.')
             #else:
             #    logging.warning("get_bindings_<"+item.tag+">= does not have a valid keyboard keybind.")
 
@@ -835,7 +848,7 @@ def get_navpoint_offset(testing=False, last=None):
             result = None
     else:
         result = {'x': final_x, 'y': final_y}
-    logging.debug('get_navpoint_offset='+str(result))
+    logging.debug('Nav Compass Point Offset: '+str(result))
     return result
 
 # Get destination offset
@@ -898,16 +911,16 @@ def get_destination_offset(testing=False):
             cv2.rectangle(screen, pt, (pt[0] + destination_width, pt[1] + destination_height), (0,0,255), 2)
             cv2.imshow('Destination Found', screen)
             cv2.imshow('Destination Mask', mask_orange)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
+            #if cv2.waitKey(25) & 0xFF == ord('q'):
+            #    cv2.destroyAllWindows()
+            #    break
         else:
             break
     if pt[0] == 0 and pt[1] == 0:
         result = None
     else:
         result = {'x':final_x, 'y':final_y}
-    logging.debug('get_destination_offset='+str(result))
+    logging.debug('Destination Offset: '+str(result))
     return result
 
 
@@ -993,7 +1006,7 @@ def x_angle(point=None):
 
 prep_engaged = datetime.min
 def align():
-    logging.info('\n' + 20*'-' + '\n' + 'ALIGN: Starting Align Sequence' + '\n' + 20*'-' + '\n')
+    logging.info('ALIGN: Starting Align Sequence')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
         logging.error('Ship align failed')
         sendDiscordWebhook("❌ Ship align failed", True)
@@ -1028,8 +1041,6 @@ def align():
 
     # logging.debug('align=complete')
 
-'\n' + 20*'-' + '\n'
-
 #Crude Align
 def crudeAlign():
     close = 6
@@ -1042,9 +1053,8 @@ def crudeAlign():
     send(keys['PitchUpButton'], state=0)
 
     ang = x_angle(off)
-
+    logging.info('ALIGN: Executing crude jump alignment.')
     while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (off['y'] < -close):
-        logging.info('ALIGN: Executing crude jump alignment')
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             logging.debug("Roll aligning")
             if off['x'] > close and ang > close_a:
@@ -1174,9 +1184,9 @@ def jump():
     for i in range(config['JumpTries']):
         logging.info('JUMP: Hyperspace Jump attempt #'+str(i))
         if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
-            logging.error('jump=err1')
+            logging.error('FSD Jump Failed')
             sendDiscordWebhook("❌ FSD Jump Failed", True)
-            raise Exception('not ready to jump')
+            raise Exception('FSD Jump Failed')
         sleep(0.5)
         logging.debug('jump=start fsd')
         send(keys['HyperSuperCombination'], hold=1)
@@ -1201,7 +1211,7 @@ def jump():
 
 # Refuel
 def refuel(refuel_threshold=config['RefuelThreshold']):
-    logging.debug('refuel')
+    logging.info('Executing fuel scooping maneuvers')
     scoopable_stars = ['F', 'O', 'G', 'K', 'B', 'A', 'M']
     if ship()['status'] != 'in_supercruise':
         logging.error('refuel=err1')
@@ -1257,7 +1267,7 @@ def get_scanner():
 def position(refueled_multiplier=1):
     logging.info('POSIT: Starting system entry positioning maneuver')
     if config['DiscoveryScan'] == "Primary":
-        logging.debug('position=scanning')
+        logging.info('POSIT: Scanning system.')
         send(keys['PrimaryFire'], state=1)
     elif config['DiscoveryScan'] == "Secondary":
         logging.debug('position=scanning')
@@ -1295,7 +1305,7 @@ def position(refueled_multiplier=1):
 # 
 # 'starting-undocking'
 # 
-# 'in-undocking'e
+# 'in-undocking'
 # 
 # 'starting-docking'
 # 
