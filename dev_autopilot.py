@@ -804,7 +804,7 @@ same_last_count = 0
 last_last = {'x': 1, 'y': 100}
 
 
-def get_navpoint_offset(testing=False, last=None):
+def get_navpoint_offset(testing=True, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         navpoint_template = cv2.imread(resource_path("templates/navpoint_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -825,7 +825,7 @@ def get_navpoint_offset(testing=False, last=None):
     final_x = (pt[0]+((1/2)*navpoint_width))-((1/2)*compass_width)
     final_y = ((1/2)*compass_height)-(pt[1]+((1/2)*navpoint_height))
     if testing:
-        cv2.rectangle(compass_image, pt, (pt[0]+navpoint_width, pt[1]+navpoint_height), (0, 0, 255), 2)
+        cv2.rectangle(filtered, pt, (pt[0]+navpoint_width, pt[1]+navpoint_height), (0, 0, 255), 2)
         cv2.imshow('Navpoint Found', compass_image)
         cv2.imshow('Navpoint Mask', filtered)
         cv2.waitKey(1)
@@ -851,41 +851,7 @@ def get_navpoint_offset(testing=False, last=None):
     logging.debug('Nav Compass Point Offset: '+str(result))
     return result
 
-# Get destination offset
-# def get_destination_offset(testing=False):
-#     if SCREEN_WIDTH == 3840:
-#         destination_template = cv2.imread(resource_path("templates/destination_3840.png"), cv2.IMREAD_GRAYSCALE)
-#     elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
-#         destination_template = cv2.imread(resource_path("templates/destination_2560.png"), cv2.IMREAD_GRAYSCALE)
-#     else:
-#         destination_template = cv2.imread(resource_path("templates/destination_1920.png"), cv2.IMREAD_GRAYSCALE)
-#     destination_width, destination_height = destination_template.shape[::-1]
-#     width = (1/3)*SCREEN_WIDTH
-#     height = (1/3)*SCREEN_HEIGHT
-#     screen = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
-#     filtered = filter_orange2(screen)
-#     match = cv2.matchTemplate(filtered, destination_template, cv2.TM_CCOEFF_NORMED)
-#     threshold = 0.2
-#     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
-#     pt = (0, 0)
-#     if max_val >= threshold:
-#         pt = max_loc
-#     final_x = (pt[0]+((1/2)*destination_width))-((1/x2)*width)
-#     final_y = ((1/2)*height)-(pt[1]+((1/2)*destination_height))
-#     logging.debug('get_destination match %f %f' % (final_x, final_y))
-#     if testing:
-#         cv2.rectangle(screen, pt, (pt[0]+destination_width, pt[1]+destination_height), (0, 0, 255), 2)
-#         cv2.imshow('Destination Found', screen)
-#         cv2.imshow('Destination Mask', filtered)
-#         cv2.waitKey(1)
-#     # if pt == (0, 0):
-#     #     result = None
-#     # else:
-#     result = {'x': final_x, 'y': final_y}
-#     logging.debug('get_destination_offset='+str(result))
-#     return 
-
-def get_destination_offset(testing=False, last=None):
+def get_destination_offset(testing=True, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         destination_template = cv2.imread(resource_path("templates/destination_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -911,7 +877,7 @@ def get_destination_offset(testing=False, last=None):
     final_x = (pt[0] + ((1/2)*destination_width)) - ((1/2)*width)
     final_y = ((1/2)*height) - (pt[1] + ((1/2)*destination_height))
     if testing:
-        cv2.rectangle(equalized, tl, br, (0,0,255), 2)
+        cv2.rectangle(equalized, pt, br, (0,0,255), 2)
         cv2.imshow('Destination Found', screen)
         cv2.imshow('Destination Mask', equalized)
         cv2.waitKey(1)
