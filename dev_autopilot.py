@@ -900,22 +900,22 @@ def get_destination_offset(testing=False, last=None):
     match = cv2.matchTemplate(equalized, destination_template, cv2.TM_CCOEFF_NORMED)
     threshold = 0.4
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
-    tl = (0, 0)
+    pt = (0, 0)
     if max_val >= threshold:
-        tl = max_loc
-    br = (tl[0] + destination_width, tl[1] + destination_height)
+        pt = max_loc
+    br = (pt[0] + destination_width, pt[1] + destination_height)
 
     width = (1/3)*SCREEN_WIDTH
     height = (1/4)*SCREEN_HEIGHT
 
-    final_x = (tl[0] + ((1/2)*destination_width)) - ((1/2)*width)
-    final_y = ((1/2)*height) - (tl[1] + ((1/2)*destination_height))
+    final_x = (pt[0] + ((1/2)*destination_width)) - ((1/2)*width)
+    final_y = ((1/2)*height) - (pt[1] + ((1/2)*destination_height))
     if testing:
         cv2.rectangle(equalized, tl, br, (0,0,255), 2)
         cv2.imshow('Destination Found', screen)
         cv2.imshow('Destination Mask', equalized)
         cv2.waitKey(1)
-    if tl == (0, 0):
+    if pt == (0, 0):
         if last:
             if last == last_last:
                 same_last_count = same_last_count+1
