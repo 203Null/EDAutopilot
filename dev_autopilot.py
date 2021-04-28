@@ -804,7 +804,7 @@ same_last_count = 0
 last_last = {'x': 1, 'y': 100}
 
 
-def get_navpoint_offset(testing=True, last=None):
+def get_navpoint_offset(testing=False, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         navpoint_template = cv2.imread(resource_path("templates/navpoint_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -825,7 +825,7 @@ def get_navpoint_offset(testing=True, last=None):
     final_x = (pt[0]+((1/2)*navpoint_width))-((1/2)*compass_width)
     final_y = ((1/2)*compass_height)-(pt[1]+((1/2)*navpoint_height))
     if testing:
-        cv2.rectangle(filtered, pt, (pt[0]+navpoint_width, pt[1]+navpoint_height), (0, 0, 255), 2)
+        cv2.rectangle(compass_image, pt, (pt[0]+navpoint_width, pt[1]+navpoint_height), (0, 0, 255), 2)
         cv2.imshow('Navpoint Found', compass_image)
         cv2.imshow('Navpoint Mask', filtered)
         cv2.waitKey(1)
@@ -851,7 +851,7 @@ def get_navpoint_offset(testing=True, last=None):
     logging.debug('Nav Compass Point Offset: '+str(result))
     return result
 
-def get_destination_offset(testing=True, last=None):
+def get_destination_offset(testing=False, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         destination_template = cv2.imread(resource_path("templates/destination_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -877,7 +877,7 @@ def get_destination_offset(testing=True, last=None):
     final_x = (pt[0] + ((1/2)*destination_width)) - ((1/2)*width)
     final_y = ((1/2)*height) - (pt[1] + ((1/2)*destination_height))
     if testing:
-        cv2.rectangle(equalized, pt, br, (0,0,255), 2)
+        cv2.rectangle(screen, pt, br, (0,0,255), 2)
         cv2.imshow('Destination Found', screen)
         cv2.imshow('Destination Mask', equalized)
         cv2.waitKey(1)
