@@ -25,7 +25,7 @@ import sys
 from datetime import datetime
 from json import load, loads, dump
 from os import environ, listdir, system
-from os.path import join, isfile, getmtime, abspath, exists
+from os.path import join, isfile, getmtime, getsize, abspath, exists
 from time import sleep
 from xml.etree.ElementTree import parse
 from discord_webhook import DiscordWebhook
@@ -129,7 +129,7 @@ else:
 
 # Read ED logs
 
-# Get latest log file
+# # Get latest log file
 def get_latest_log(path_logs=None):
     """Returns the full path of the latest (most recent) elite log file (journal) from specified path"""
     if not path_logs:
@@ -141,25 +141,28 @@ def get_latest_log(path_logs=None):
     return latest_log
 
 
-logging.info('get_latest_log='+str(get_latest_log(PATH_LOG_FILES)))
+logging.info('get_latest_log='+get_latest_log(PATH_LOG_FILES))
 
 def timeStampToLocalTime(timestamp):
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
     return dt
 
 # Extract ship info from log
-# statusCache = None
-# statusCacheTime = None
+statusCache = None
+statusCacheSize = None
 autopilot_start_time = datetime.max
 def ship():
     """Returns a 'status' dict containing relevant game status information (state, fuel, ...)"""
     latest_log = get_latest_log(PATH_LOG_FILES)
+    global statusCache
+    global statusCacheSize
+
+    statusSize = getsize(latest_log)
+    if statusCacheSize == statusSize:
+        return statusCache
     
-    lastModiedTime = getmtime(latest_log)
-    # if lastModiedTime == statusCacheTime:
-    #     return statusCache
     ship_status = {
-        'time': (datetime.now()-datetime.fromtimestamp(lastModiedTime)).seconds,
+        'time': (datetime.now()-datetime.fromtimestamp(getmtime(latest_log))).seconds,
         'status': None,
         'type': None,
         'location': None,
@@ -250,8 +253,11 @@ def ship():
                         try:
                             ship_status['jumps_remains'] = log['RemainingJumpsInRoute']
                         except KeyError:
-                            ship_status['jumps_remains'] = 0
-                            logging.warning('Log did not have jumps remaining. This seems to happen most when you have less than 3 jumps remaining. Jumps remaining will be inaccurate for this jump.')
+                            try:
+                                ship_status['jumps_remains'] = statusCache['jumps_remains'] - 1
+                            except KeyError:
+                                ship_status['jumps_remains'] = 0
+                                logging.warning('Log did not have jumps remaining. This seems to happen most when you have less than 3 jumps remaining. Jumps remaining will be inaccurate for this jump.')
                     
                 elif log_event == 'FSDJump':
                     timestamp = timeStampToLocalTime(log['timestamp'])
@@ -277,6 +283,8 @@ def ship():
     if len(jumps_lastHr) > 1:
         ship_status['speed'] = len(jumps_lastHr) / (max(jumps_lastHr) / 3600)
     #     logging.debug('ship='+str(ship))
+    statusCache = ship_status
+    statusCacheSize = statusSize
     return ship_status
 
 
