@@ -603,7 +603,7 @@ def filter_bright(image=None, testing=False):
 def filter_sun(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -624,7 +624,7 @@ def filter_sun(image=None, testing=False):
 def filter_orange(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -645,7 +645,7 @@ def filter_orange(image=None, testing=False):
 def filter_orange2(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -666,7 +666,7 @@ def filter_orange2(image=None, testing=False):
 def filter_blue(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -686,7 +686,7 @@ def filter_blue(image=None, testing=False):
 def filter_cyan(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -710,7 +710,7 @@ ui_color_upper = [ui_color_hue + 15, 255, 255]
 def filter_ui(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
@@ -737,7 +737,7 @@ def filter_ui(image=None, testing=False):
 
 # Get sun
 def sun_percent():
-    screen = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+    screen = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
     filtered = filter_sun(screen)
     white = np.sum(filtered == 255)
     black = np.sum(filtered != 255)
@@ -814,10 +814,10 @@ def get_navpoint_offset(testing=False, last=None):
         navpoint_template = cv2.imread(resource_path("templates/navpoint_1920.png"), cv2.IMREAD_GRAYSCALE)
     navpoint_width, navpoint_height = navpoint_template.shape[::-1]
     compass_image, compass_width, compass_height = get_compass_image()
-    filtered = filter_blue(compass_image)
-    # filtered = filter_bright(compass_image)
+    # filtered = filter_blue(compass_image)
+    filtered = filter_bright(compass_image)
     match = cv2.matchTemplate(filtered, navpoint_template, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.5
+    threshold = 0.7
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
     pt = (0, 0)
     if max_val >= threshold:
@@ -885,7 +885,8 @@ def get_navpoint_offset(testing=False, last=None):
 #     logging.debug('get_destination_offset='+str(result))
 #     return 
 
-def get_destination_offset(testing=False):
+def get_destination_offset(testing=False, last=None):
+    global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         destination_template = cv2.imread(resource_path("templates/destination_3840.png"), cv2.IMREAD_GRAYSCALE)
     elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
@@ -893,33 +894,47 @@ def get_destination_offset(testing=False):
     else:
         destination_template = cv2.imread(resource_path("templates/destination_1920.png"), cv2.IMREAD_GRAYSCALE)
     destination_width, destination_height = destination_template.shape[::-1]
-    pt = (0, 0)
+    screen = get_screen((1/4)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT,(3/4)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
+    # mask_orange = filter_cyan(screen) #Custom color 203Null
+    equalized = equalize(screen)
+    match = cv2.matchTemplate(equalized, destination_template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.4
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
+    tl = (0, 0)
+    if max_val >= threshold:
+        tl = max_loc
+    br = (tl[0] + destination_width, tl[1] + destination_height)
+
     width = (1/3)*SCREEN_WIDTH
-    height = (1/3)*SCREEN_HEIGHT
-    while True:
-        screen = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT,(2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
-        mask_orange = filter_cyan(screen) #Custom color 203Null
-        #equalized = equalize(screen)
-        match = cv2.matchTemplate(mask_orange, destination_template, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.2
-        loc = np.where(match >= threshold)
-        for point in zip(*loc[::-1]):
-                pt = point
-        final_x = (pt[0] + ((1/2)*destination_width)) - ((1/2)*width)
-        final_y = ((1/2)*height) - (pt[1] + ((1/2)*destination_height))
-        if testing:
-            cv2.rectangle(screen, pt, (pt[0] + destination_width, pt[1] + destination_height), (0,0,255), 2)
-            cv2.imshow('Destination Found', screen)
-            cv2.imshow('Destination Mask', mask_orange)
-            #if cv2.waitKey(25) & 0xFF == ord('q'):
-            #    cv2.destroyAllWindows()
-            #    break
+    height = (1/4)*SCREEN_HEIGHT
+
+    final_x = (tl[0] + ((1/2)*destination_width)) - ((1/2)*width)
+    final_y = ((1/2)*height) - (tl[1] + ((1/2)*destination_height))
+    if testing:
+        cv2.rectangle(equalized, tl, br, (0,0,255), 2)
+        cv2.imshow('Destination Found', screen)
+        cv2.imshow('Destination Mask', equalized)
+        cv2.waitKey(1)
+    if tl == (0, 0):
+        if last:
+            if last == last_last:
+                same_last_count = same_last_count+1
+            else:
+                last_last = last
+                same_last_count = 0
+            if same_last_count > 5:
+                same_last_count = 0
+                if rand.random() < .9:
+                    result = {'x': 1, 'y': 100}
+                else:
+                    result = {'x': 100, 'y': 1}
+            else:
+                result = last
         else:
-            break
-    if pt[0] == 0 and pt[1] == 0:
-        result = None
+            result = None
     else:
-        result = {'x':final_x, 'y':final_y}
+        result = {'x': final_x, 'y': final_y}
+  
     logging.debug('Destination Offset: '+str(result))
     return result
 
@@ -1008,10 +1023,9 @@ prep_engaged = datetime.min
 def align():
     logging.info('ALIGN: Starting Align Sequence')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()['status'] == 'starting_supercruise'):
-        logging.error('Ship align failed')
-        sendDiscordWebhook("❌ Ship align failed", True)
-        raise Exception('align failed')
-    '\n' + 20*'-' + '\n'
+        logging.error('Ship align failed.')
+        sendDiscordWebhook("❌ Ship align failed.", True)
+        raise Exception('align failed.')
     logging.info('ALIGN: Setting speed to 100%')
     send(keys['SetSpeed100'])
 
@@ -1043,7 +1057,7 @@ def align():
 
 #Crude Align
 def crudeAlign():
-    close = 6
+    close = 4
     close_a = 10
 
     off = get_navpoint_offset()
