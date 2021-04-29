@@ -400,49 +400,6 @@ for key in keys_to_obtain:
     except Exception as e:
         logging.warning(str("<"+key+"> does not appear to have a valid keybind. This could cause issues with the script. Please bind the key and restart the script.").upper())
 
-def getUIColor():
-    origonal_bgr = [0,218,255]
-    graphic_file = environ['LOCALAPPDATA'] + r'\Frontier Developments\Elite Dangerous\Options\Graphics\GraphicsConfigurationOverride.xml'
-    if exists(graphic_file):
-        return origonal_bgr
-    data = parse(graphic_file)
-    root = data.getroot()
-    matrixRed = [float(i) * origonal_bgr[0] for i in root.find("./GUIColour/Default/MatrixRed").text.replace(" ", "").split(",")]
-    matrixGreen = [float(i) * origonal_bgr[1] for i in root.find("./GUIColour/Default/MatrixGreen").text.replace(" ", "").split(",")]
-    matrixBlue = [float(i) * origonal_bgr[2] for i in root.find("./GUIColour/Default/MatrixBlue").text.replace(" ", "").split(",")]
-
-    max_colour_val = 255.0
-
-    red = origonal_bgr[0] / max_colour_val
-    green = origonal_bgr[1] / max_colour_val
-    blue = origonal_bgr[2] / max_colour_val
-
-    rgb_in = [red, green, blue]
-
-    new_red = \
-        matrixRed[0] * red + \
-        matrixGreen[0] * green + \
-        matrixBlue[0] * blue
-    new_green = \
-        matrixRed[1] * red + \
-        matrixGreen[1] * green + \
-        matrixBlue[1] * blue
-    new_blue = \
-        matrixRed[2] * red + \
-        matrixGreen[2] * green + \
-        matrixBlue[2] * blue
-
-    new_red = clamp(new_red, 0, max_colour_val)
-    new_green = clamp(new_green, 0, max_colour_val)
-    new_blue = clamp(new_blue, 0, max_colour_val)
-
-    return [new_blue, new_green, new_red]
-
-ui_color = getUIColor()
-logging.info('UI Color: '+str(ui_color))
-
-# Direct input function
-
 # Send input
 def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
     global KEY_MOD_DELAY, KEY_DEFAULT_DELAY, KEY_REPEAT_DELAY
@@ -499,63 +456,6 @@ def get_screen(x_left, y_top, x_right, y_bot):
     screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
     return screen
 
-
-# HSV slider tool
-def callback(x):
-    pass
-
-
-def hsv_slider(bandw=False):
-    cv2.namedWindow('image')
-
-    ilowH = 0
-    ihighH = 179
-
-    ilowS = 0
-    ihighS = 255
-    ilowV = 0
-    ihighV = 255
-
-    # create trackbars for color change
-    cv2.createTrackbar('lowH', 'image', ilowH, 179, callback)
-    cv2.createTrackbar('highH', 'image', ihighH, 179, callback)
-
-    cv2.createTrackbar('lowS', 'image', ilowS, 255, callback)
-    cv2.createTrackbar('highS', 'image', ihighS, 255, callback)
-
-    cv2.createTrackbar('lowV', 'image', ilowV, 255, callback)
-    cv2.createTrackbar('highV', 'image', ihighV, 255, callback)
-
-    while True:
-        # grab the frame
-        frame = get_screen((5/16)*SCREEN_WIDTH, (5/8)*SCREEN_HEIGHT, (2/4)*SCREEN_WIDTH, (15/16)*SCREEN_HEIGHT)
-        if bandw:
-            frame = equalize(frame)
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
-        # get trackbar positions
-        ilowH = cv2.getTrackbarPos('lowH', 'image')
-        ihighH = cv2.getTrackbarPos('highH', 'image')
-        ilowS = cv2.getTrackbarPos('lowS', 'image')
-        ihighS = cv2.getTrackbarPos('highS', 'image')
-        ilowV = cv2.getTrackbarPos('lowV', 'image')
-        ihighV = cv2.getTrackbarPos('highV', 'image')
-
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower_hsv = np.array([ilowH, ilowS, ilowV])
-        higher_hsv = np.array([ihighH, ihighS, ihighV])
-        mask = cv2.inRange(hsv, lower_hsv, higher_hsv)
-
-        frame = cv2.bitwise_and(frame, frame, mask=mask)
-
-        # show thresholded image
-        cv2.imshow('image', frame)
-
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            break
-
-
 # Equalization
 def equalize(image=None, testing=False):
     while True:
@@ -598,142 +498,14 @@ def filter_bright(image=None, testing=False):
             break
     return filtered
 
-
 # Filter sun
-def filter_sun(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array([0, 100, 240]), np.array([180, 255, 255]))
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
-
-# Filter orange
-def filter_orange(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array([0, 130, 123]), np.array([25, 235, 220]))
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
-
-# Filter orange2
-def filter_orange2(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array([15, 220, 220]), np.array([30, 255, 255]))
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
-
-# Filter blue
-def filter_blue(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array([0, 0, 200]), np.array([180, 100, 255]))
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
-# Filter cyan
-def filter_cyan(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array([83, 100, 100]), np.array([103, 255, 255]))
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
-# Filter ui color
-ui_color_hue = cv2.cvtColor(np.uint8([[ui_color]]), cv2.COLOR_BGR2HSV)[0][0][0]
-logging.info("UI Color Hue: %d" % (ui_color_hue * 2))
-ui_color_lower = [ui_color_hue - 15, 100, 100]
-ui_color_upper = [ui_color_hue + 15, 255, 255]
-def filter_ui(image=None, testing=False):
-    while True:
-        if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
-        else:
-            hsv = image.copy()
-        # converting from BGR to HSV color space
-        hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
-        # filter Elite UI orange
-        filtered = cv2.inRange(hsv, np.array(ui_color_lower), np.array(ui_color_upper))
-        if ui_color_hue < 14:
-            filtered2 = cv2.inRange(hsv, np.array([179 - (ui_color_hue - 15), 100, 100]), np.array([179, 255, 255]))
-            filtered = 255*(filtered + filtered2)
-            filtered = filtered.clip(0, 255).astype("uint8")
-        elif ui_color_hue > 165:
-            filtered2 = cv2.inRange(hsv, np.array([0, 100, 100]), np.array([(15 - (180 - ui_color_hue)), 255, 255]))
-            filtered = 255*(filtered + filtered2)
-            filtered = filtered.clip(0, 255).astype("uint8")
-        if testing:
-            cv2.imshow('Filtered', filtered)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-        else:
-            break
-    return filtered
-
+def sun_percent():
+    screen = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
+    filtered = filter_sun(screen)
+    white = np.sum(filtered == 255)
+    black = np.sum(filtered != 255)
+    result = white/black
+    return result*100
 
 # Get sun
 def sun_percent():
@@ -1027,12 +799,13 @@ def crudeAlign():
     close_a = 10
 
     off = get_navpoint_offset()
+    ang = x_angle(off)
+
     while off is None: #Untill NavPoint Found
         send(keys['PitchUpButton'], state=1)
         off = get_navpoint_offset()
     send(keys['PitchUpButton'], state=0)
 
-    ang = x_angle(off)
     logging.info('ALIGN: Executing crude jump alignment.')
     while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (off['y'] < -close):
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
@@ -1250,11 +1023,11 @@ def position(refueled_multiplier=1):
         logging.info('POSIT: Scanning system.')
         send(keys['PrimaryFire'], state=1)
     elif config['DiscoveryScan'] == "Secondary":
-        logging.debug('position=scanning')
+        logging.info('POSIT: Scanning system.')
         send(keys['SecondaryFire'], state=1)
     
     send(keys['PitchUpButton'], state=1)
-    sleep(5)
+    sleep(4)
     send(keys['PitchUpButton'], state=0)
     send(keys['SetSpeed100'])
     send(keys['PitchUpButton'], state=1)
@@ -1265,10 +1038,10 @@ def position(refueled_multiplier=1):
     sleep(5*refueled_multiplier)
     logging.info('POSIT: System entry positioning complete')
     if config['DiscoveryScan'] == "Primary":
-        logging.debug('position=scanning')
+        logging.debug('position=scanning1')
         send(keys['PrimaryFire'], state=0)
     elif config['DiscoveryScan'] == "Secondary":
-        logging.debug('position=scanning')
+        logging.debug('position=scanning2')
         send(keys['SecondaryFire'], state=0)
     return True
 
