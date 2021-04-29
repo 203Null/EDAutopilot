@@ -55,9 +55,17 @@ config = dict(DiscoveryScan="Primary",
                 DiscordWebhook=False,
                 DiscordWebhookURL="",
                 DiscordUserID="",
-                DebugLog=False,
+                DebugLog=True,
                 )
 
+# def get_config():
+if exists('config.json'):
+    with open('config.json') as json_file:
+        config = load(json_file)
+else:
+    with open('config.json', 'w') as json_file:
+        dump(config, json_file)
+        
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -116,16 +124,6 @@ logging.info('KEY_REPEAT_DELAY='+str(KEY_REPEAT_DELAY))
 logging.info('FUNCTION_DEFAULT_DELAY='+str(FUNCTION_DEFAULT_DELAY))
 logging.info('SCREEN_WIDTH='+str(SCREEN_WIDTH))
 logging.info('SCREEN_HEIGHT='+str(SCREEN_HEIGHT))
-
-
-# def get_config():
-if exists('config.json'):
-    with open('config.json') as json_file:
-        config = load(json_file)
-else:
-    with open('config.json', 'w') as json_file:
-        dump(config, json_file)
-
 
 # Read ED logs
 
@@ -252,10 +250,10 @@ def ship():
                         ship_status['target'] = log['Name']
                         try:
                             ship_status['jumps_remains'] = log['RemainingJumpsInRoute']
-                        except KeyError:
+                        except:
                             try:
                                 ship_status['jumps_remains'] = statusCache['jumps_remains'] - 1
-                            except KeyError:
+                            except:
                                 ship_status['jumps_remains'] = 0
                                 logging.warning('Log did not have jumps remaining. This seems to happen most when you have less than 3 jumps remaining. Jumps remaining will be inaccurate for this jump.')
                     
@@ -754,7 +752,7 @@ def sun_percent():
 
 
 # Get compass image
-def get_compass_image(testing=False):
+def get_compass_image(testing=True):
     while True:
         if SCREEN_WIDTH == 3840:
             compass_template = cv2.imread(resource_path("templates/compass_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -812,7 +810,7 @@ same_last_count = 0
 last_last = {'x': 1, 'y': 100}
 
 
-def get_navpoint_offset(testing=False, last=None):
+def get_navpoint_offset(testing=True, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         navpoint_template = cv2.imread(resource_path("templates/navpoint_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -1300,22 +1298,26 @@ def position(refueled_multiplier=1):
 # 'in-docking'
 
 def safeNet():
-    if config['SafeNet']:
-        logging.info('SAFENET: Ship Damage Safenet Activated!')
-        last_ship_status = ship()['status']
-        while(True):
-            # logging.error('Ship Damage Safenet Running!')
-            # logging.error(ship()['status'])
-            if ship()['damaged'] == True:
-                logging.critical("Ship Damage Detected, Exiting Game.")
-                sendDiscordWebhook("🔥🔥🔥 Damage Detected, Exiting Game 🔥🔥🔥", True)
-                killED()
-                return
-            if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
-                logging.critical("Ship dropped from supercurise")
-                sendDiscordWebhook("❌ Ship dropped from supercurise. Action required", True)
+    try:
+        if config['SafeNet']:
+            logging.info('SAFENET: Ship Damage Safenet Activated!')
             last_ship_status = ship()['status']
-            sleep(1)
+            while(True):
+                # logging.error('Ship Damage Safenet Running!')
+                # logging.error(ship()['status'])
+                if ship()['damaged'] == True:
+                    logging.critical("Ship Damage Detected, Exiting Game.")
+                    sendDiscordWebhook("🔥🔥🔥 Damage Detected, Exiting Game 🔥🔥🔥", True)
+                    killED()
+                    return
+                if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
+                    logging.critical("Ship dropped from supercurise")
+                    sendDiscordWebhook("❌ Ship dropped from supercurise. Action required", True)
+                last_ship_status = ship()['status']
+                sleep(1)
+    finally:
+        if config['SafeNet']:
+            logging.info('SAFENET: Ship Damage Safenet Deactivated!')
 
 def killED():
     logging.critical("Trying to ternimate Elite Dangerous!!")
