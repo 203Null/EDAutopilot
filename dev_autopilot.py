@@ -502,13 +502,13 @@ def filter_bright(image=None, testing=False):
 def filter_sun(image=None, testing=False):
     while True:
         if testing:
-            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/3)*SCREEN_HEIGHT,(2/3)*SCREEN_WIDTH, (2/3)*SCREEN_HEIGHT)
+            hsv = get_screen((1/3)*SCREEN_WIDTH, (1/4)*SCREEN_HEIGHT, (2/3)*SCREEN_WIDTH, (3/4)*SCREEN_HEIGHT)
         else:
             hsv = image.copy()
         # converting from BGR to HSV color space
         hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
         # filter Elite UI orange
-        filtered = cv2.inRange(hsv, array([0, 100, 240]), array([180, 255, 255]))
+        filtered = cv2.inRange(hsv, np.array([0, 100, 240]), np.array([180, 255, 255]))
         if testing:
             cv2.imshow('Filtered', filtered)
             if cv2.waitKey(25) & 0xFF == ord('q'):
