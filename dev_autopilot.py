@@ -536,7 +536,7 @@ def sun_percent():
 
 
 # Get compass image
-def get_compass_image(testing=True):
+def get_compass_image(Testing=False):
     while True:
         if SCREEN_WIDTH == 3840:
             compass_template = cv2.imread(resource_path("templates/compass_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -594,7 +594,7 @@ same_last_count = 0
 last_last = {'x': 1, 'y': 100}
 
 
-def get_navpoint_offset(testing=True, last=None):
+def get_navpoint_offset(Testing=False, last=None):
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
         navpoint_template = cv2.imread(resource_path("templates/navpoint_3840.png"), cv2.IMREAD_GRAYSCALE)
@@ -607,7 +607,7 @@ def get_navpoint_offset(testing=True, last=None):
     # filtered = filter_blue(compass_image)
     filtered = filter_bright(compass_image)
     match = cv2.matchTemplate(filtered, navpoint_template, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.7
+    threshold = 0.4
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
     pt = (0, 0)
     if max_val >= threshold:
