@@ -44,7 +44,6 @@ def stop_action():
     clear_input(get_bindings())
     threads = []
 
-
 def set_state(v):
     def inner(icon, item):
         global STATE
