@@ -7,7 +7,7 @@
 #   1 - [A Python wrapper around AHK](https://pypi.org/project/ahk/)
 # 
 #   2 - [OpenCV on Wheels](https://pypi.org/project/opencv-python/)
-# 
+#
 #   3 - [Autopilot for Elite Dangerous using OpenCV and thoughts on CV enabled bots in visual-to-keyboard loop]
 #       (https://networkgeekstuff.com/projects/autopilot-for-elite-dangerous-using-opencv-and-thoughts-on-cv-enabled-bots-in-visual-to-keyboard-loop/)
 #   
@@ -16,28 +16,65 @@
 #   
 #   6 - [Cross-platform GUI automation for human beings](https://pyautogui.readthedocs.io/en/latest/index.html)
 
+from datetime import datetime
+from json import load, loads, dump
+from logging import basicConfig, INFO, DEBUG, StreamHandler, info, debug, warning, error, critical, exception
+from math import degrees, atan
+from os import environ, listdir, system
+from os.path import join, isfile, getmtime, getsize, abspath, exists
 # Imports
 from random import random
-from PIL import ImageGrab
 from time import sleep, time
-from datetime import datetime
-from math import degrees, atan
-from json import load, loads, dump
-from numpy import array, sum, where
-from os import environ, listdir, system
 from xml.etree.ElementTree import parse
-from discord_webhook import DiscordWebhook
-from pyautogui import size  # see reference 6
+
+from PIL import ImageGrab
 from colorlog import getLogger, ColoredFormatter
-from os.path import join, isfile, getmtime, getsize, abspath, exists
-from src.directinput import SCANCODE, PressKey, ReleaseKey  # see reference 5
-from logging import basicConfig, INFO, DEBUG, StreamHandler, info, debug, warning, error, critical, exception
 from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, waitKey, destroyAllWindows, \
     COLOR_GRAY2BGR, COLOR_BGR2HSV, inRange, imread, IMREAD_GRAYSCALE, TM_CCOEFF_NORMED, matchTemplate, minMaxLoc, \
     rectangle, circle  # see reference 2
+from discord_webhook import DiscordWebhook
+from numpy import array, sum, where
+from pyautogui import size  # see reference 6
 
-# from dev_tray import stop_action
+from src.directinput import SCANCODE, PressKey, ReleaseKey  # see reference 5
 
+""" ################################# """
+""" Constant and Variable declaration """
+"""       Basic Initialization        """
+""" ################################# """
+
+# Constants
+RELEASE = 'v19.05.15-alpha-18'
+PATH_LOG_FILES, PATH_KEYBINDINGS = None, None
+KEY_MOD_DELAY = 0.010
+KEY_REPEAT_DELAY = 0.100
+KEY_DEFAULT_DELAY = 0.200
+FUNCTION_DEFAULT_DELAY = 0.500
+SCREEN_WIDTH, SCREEN_HEIGHT = size()
+keys_to_obtain = [
+    'YawLeftButton',
+    'YawRightButton',
+    'RollLeftButton',
+    'RollRightButton',
+    'PitchUpButton',
+    'PitchDownButton',
+    'SetSpeedZero',
+    # 'SetSpeed25',
+    'SetSpeed100',
+    'HyperSuperCombination',
+    'UIFocus',
+    'UI_Up',
+    'UI_Down',
+    'UI_Left',
+    'UI_Right',
+    'UI_Select',
+    'UI_Back',
+    'CycleNextPanel',
+    'HeadLookReset',
+    'PrimaryFire',
+    'SecondaryFire',
+    'MouseReset'
+]
 config = dict(DiscoveryScan="Primary",
               SafeNet=True,
               # AutoFSS=False,
@@ -56,6 +93,14 @@ config = dict(DiscoveryScan="Primary",
               DebugLog=True,
               )
 
+# Variable Declaration
+statusCache = None
+statusCacheSize = None
+keys = [None]
+autopilot_start_time = datetime.max
+prep_engaged = datetime.min
+program_state = 1
+
 # def get_config():
 if exists('config.json'):
     with open('config.json') as json_file:
@@ -64,7 +109,9 @@ else:
     with open('config.json', 'w') as json_file:
         dump(config, json_file)
 
+
 # Logging
+
 basicConfig(filename='autopilot.log', level=DEBUG)
 logger = getLogger()
 logger.setLevel((INFO, DEBUG)[config["DebugLog"]])
@@ -88,19 +135,10 @@ logger.info('This is an INFO message. These information is usually used for conv
 logger.warning('some warning message. These information is usually used for warning')
 logger.error('some error message. These information is usually used for errors and should not happen')
 logger.critical(
-    'some critical message. These information is usually used for critical error and usually results in an exception')
+ 'some critical message. These information is usually used for critical error and usually results in an exception')
+
 
 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DATA ' + '\n' + 20 * '-' + '\n')
-
-# Constants
-RELEASE = 'v19.05.15-alpha-18'
-PATH_LOG_FILES = None
-PATH_KEYBINDINGS = None
-KEY_MOD_DELAY = 0.010
-KEY_DEFAULT_DELAY = 0.200
-KEY_REPEAT_DELAY = 0.100
-FUNCTION_DEFAULT_DELAY = 0.500
-SCREEN_WIDTH, SCREEN_HEIGHT = size()
 
 info('RELEASE=' + str(RELEASE))
 info('PATH_LOG_FILES=' + str(PATH_LOG_FILES))
@@ -113,9 +151,16 @@ info('SCREEN_WIDTH=' + str(SCREEN_WIDTH))
 info('SCREEN_HEIGHT=' + str(SCREEN_HEIGHT))
 
 
-# Read ED logs
+def times_stamp_to_local_time(timestamp):
+    dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+    return dt
 
-# # Get latest log file
+
+""" ############################################# """
+""" Acquire and parse Elite Dangerous journal log """
+""" ############################################# """
+
+
 def get_latest_log(path_logs=None):
     """Returns the full path of the latest (most recent) elite log file (journal) from specified path"""
     if not path_logs:
@@ -125,23 +170,11 @@ def get_latest_log(path_logs=None):
     if not list_of_logs:
         return None
     latest_log = max(list_of_logs, key=getmtime)
+
     return latest_log
 
 
-info('get_latest_log=' + get_latest_log(PATH_LOG_FILES))
-
-
-def times_tamp_to_local_time(timestamp):
-    dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
-    return dt
-
-
 # Extract ship info from log
-statusCache = None
-statusCacheSize = None
-autopilot_start_time = datetime.max
-
-
 def ship():
     """Returns a 'status' dict containing relevant game status information (state, fuel, ...)"""
     latest_log = get_latest_log(PATH_LOG_FILES)
@@ -227,8 +260,8 @@ def ship():
 
                 # parse scoop
                 if log_event == 'FuelScoop' and (
-                        datetime.utcnow() - times_tamp_to_local_time(log['timestamp'])).seconds < 10 and ship_status[
-                        'fuel_percent'] < 100:
+                        datetime.utcnow() - times_stamp_to_local_time(log['timestamp'])).seconds < 10 and \
+                        ship_status['fuel_percent'] < 100:
                     ship_status['is_scooping'] = True
                 else:
                     ship_status['is_scooping'] = False
@@ -258,7 +291,7 @@ def ship():
                                     '3 jumps remaining. Jumps remaining will be inaccurate for this jump.')
 
                 elif log_event == 'FSDJump':
-                    timestamp = times_tamp_to_local_time(log['timestamp'])
+                    timestamp = times_stamp_to_local_time(log['timestamp'])
                     if timestamp > autopilot_start_time:
                         seconds_ago = (datetime.utcnow() - timestamp).seconds
                         if seconds_ago < 900:  # 15min
@@ -270,7 +303,7 @@ def ship():
 
                 # Damage
                 if (log_event == 'HeatDamage' or log_event == 'HullDamage') and (
-                        datetime.utcnow() - times_tamp_to_local_time(log['timestamp'])).seconds < 10:
+                        datetime.utcnow() - times_stamp_to_local_time(log['timestamp'])).seconds < 10:
                     # log_event == 'HeatWarning' or
                     ship_status['damaged'] = True
 
@@ -284,15 +317,15 @@ def ship():
     #     debug('ship='+str(ship))
     statusCache = ship_status
     statusCacheSize = statussize
+    debug('ship=' + str(ship()))
     return ship_status
 
 
-debug('ship=' + str(ship()))
+""" ############################################# """
+""" Keybinding acquisition and binding assignment """
+""" ############################################# """
 
 
-# Control ED with direct input
-
-# Get latest keybinds file
 def get_latest_keybinds(path_bindings=None):
     if not path_bindings:
         path_bindings = environ['LOCALAPPDATA'] + "\\Frontier Developments\\Elite Dangerous\\Options\\Bindings"
@@ -301,36 +334,8 @@ def get_latest_keybinds(path_bindings=None):
     if not list_of_bindings:
         return None
     latest_bindings = max(list_of_bindings, key=getmtime)
+    debug("Current Keybinds: " + str(latest_bindings))
     return latest_bindings
-
-
-info("Current Keybinds: " + str(get_latest_keybinds()))
-
-# Extract necessary keys
-keys_to_obtain = [
-    'YawLeftButton',
-    'YawRightButton',
-    'RollLeftButton',
-    'RollRightButton',
-    'PitchUpButton',
-    'PitchDownButton',
-    'SetSpeedZero',
-    # 'SetSpeed25',
-    'SetSpeed100',
-    'HyperSuperCombination',
-    'UIFocus',
-    'UI_Up',
-    'UI_Down',
-    'UI_Left',
-    'UI_Right',
-    'UI_Select',
-    'UI_Back',
-    'CycleNextPanel',
-    'HeadLookReset',
-    'PrimaryFire',
-    'SecondaryFire',
-    'MouseReset'
-]
 
 
 def get_bindings(obtain_keys=None):
@@ -390,11 +395,9 @@ def get_bindings(obtain_keys=None):
                         binding['mod'] = SCANCODE[binding['pre_mod']]
                 if binding is not None:
                     direct_input_keys[item.tag] = binding
-            except Exception:
-                error(
-                    '<' + new_key + '> is most likely an unusable keybind. Please rebind and restart the script.')
-            # else:
-            #    warning("get_bindings_<"+item.tag+">= does not have a valid keyboard keybind.")
+            except Exception as e:
+                error('<' + new_key + '> is most likely an unusable keybind. Please rebind and restart the script.')
+                error(e)
 
     if len(list(direct_input_keys.keys())) < 1:
         return None
@@ -412,7 +415,11 @@ for key in keys_to_obtain:
                 "Please bind the key and restart the script.").upper())
 
 
-# Send input
+""" ############# """
+""" Input Control """
+""" ############# """
+
+
 def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
     global KEY_MOD_DELAY, KEY_DEFAULT_DELAY, KEY_REPEAT_DELAY
 
@@ -462,7 +469,10 @@ def clear_input(to_clear=None):
     debug('clear_input')
 
 
-# OpenCV
+""" ############################################# """
+""" Open Computer Vision Processing """
+""" ############################################# """
+
 
 # Get screen
 def get_screen(x_left, y_top, x_right, y_bot):
@@ -728,7 +738,21 @@ def get_destination_offset(testing=False, last=None):
     return result
 
 
-# Autopilot routines
+# Angle Offset from Center
+def x_angle(point=None):
+    if not point or point['x'] == 0:
+        return None
+    result = degrees(atan(point['y'] / point['x']))
+    if point['x'] > 0:
+        return +90 - result
+    else:
+        return -90 - result
+
+
+""" ############################## """
+""" Auto ship navigation functions """
+""" ############################## """
+
 
 # Undock
 def undock():
@@ -799,24 +823,10 @@ def dock():
     return True
 
 
-# Align
-def x_angle(point=None):
-    if not point or point['x'] == 0:
-        return None
-    result = degrees(atan(point['y'] / point['x']))
-    if point['x'] > 0:
-        return +90 - result
-    else:
-        return -90 - result
-
-
-prep_engaged = datetime.min
-
-
 def align():
     info('ALIGN: Starting Align Sequence')
-    if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()[
-            'status'] == 'starting_supercruise'):
+    if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or
+            ship()['status'] == 'starting_supercruise'):
         error('Ship align failed.')
         send_discord_webhook("❌ Ship align failed.", True)
         raise Exception('align failed.')
@@ -837,10 +847,10 @@ def align():
         prep_engaged = datetime.now()
         send(keys['HyperSuperCombination'], hold=0.2)  # prep
     # while 1:
-    while not ship()['status'] == 'starting_hyperspace':
+    while (not ship()['status'] == 'starting_hyperspace') and check_state() == 1:
         crude_align()
 
-        if ship()['status'] == 'starting_hyperspace':
+        if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
             return
 
         fine_align()
@@ -854,15 +864,17 @@ def crude_align():
     off = get_navpoint_offset()
     ang = x_angle(off)
 
-    while off is None:  # Until NavPoint Found
+    while off is None and check_state() == 1:  # Until NavPoint Found
         send(keys['PitchUpButton'], state=1)
         off = get_navpoint_offset()
+        if check_state() == 0:
+            break
     send(keys['PitchUpButton'], state=0)
 
     info('ALIGN: Executing crude jump alignment.')
-    while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or (off['y'] > close) or (
-            off['y'] < -close):
-        while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
+    while check_state() == 1 and ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
+                                  (off['y'] > close) or (off['y'] < -close)):
+        while check_state() == 1 and (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             debug("Roll aligning")
             if off['x'] > close and ang > close_a:
                 send(keys['RollRightButton'], state=1)
@@ -874,7 +886,7 @@ def crude_align():
             else:
                 send(keys['RollLeftButton'], state=0)
 
-            if ship()['status'] == 'starting_hyperspace':
+            if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
                 ReleaseKey(keys['RollRightButton']['key'])
                 ReleaseKey(keys['RollLeftButton']['key'])
                 return
@@ -887,7 +899,7 @@ def crude_align():
         ReleaseKey(keys['PitchUpButton']['key'])
         ReleaseKey(keys['PitchDownButton']['key'])
 
-        while (off['y'] > close) or (off['y'] < -close):
+        while check_state() == 1 and ((off['y'] > close) or (off['y'] < -close)):
             debug("Pitch aligning")
 
             if off['y'] > close:
@@ -900,7 +912,7 @@ def crude_align():
             else:
                 send(keys['PitchDownButton'], state=0)
 
-            if ship()['status'] == 'starting_hyperspace':
+            if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
                 ReleaseKey(keys['PitchUpButton']['key'])
                 ReleaseKey(keys['PitchDownButton']['key'])
                 return
@@ -918,7 +930,7 @@ def crude_align():
 
 # Fine Align
 def fine_align():
-    global new
+    new = None
     info('ALIGN: Executing fine jump alignment')
     sleep(0.5)
     close = 40
@@ -935,7 +947,8 @@ def fine_align():
     if new is None:
         return False
 
-    while (off['x'] > close) or (off['x'] < -close) or (off['y'] > close) or (off['y'] < -close):
+    while check_state() == 1 and ((off['x'] > close) or (off['x'] < -close) or
+                                  (off['y'] > close) or (off['y'] < -close)):
         if off['x'] > close:
             send(keys['YawRightButton'], hold=hold_yaw)
         elif off['x'] < -close:
@@ -988,8 +1001,8 @@ def jump():
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
     for i in range(config['JumpTries']):
         info('JUMP: Hyperspace Jump attempt #' + str(i))
-        if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or ship()[
-                'status'] == 'starting_supercruise'):
+        if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or
+                ship()['status'] == 'starting_supercruise'):
             error('FSD Jump Failed')
             send_discord_webhook("❌ FSD Jump Failed", True)
             raise Exception('FSD Jump Failed')
@@ -1002,6 +1015,9 @@ def jump():
             send(keys['HyperSuperCombination'], hold=1)
             sleep(2)
             align()
+        elif not check_state() == 1:
+            send(keys['SetSpeedZero'])
+            return False
         else:
             debug('jump=in jump')
             while ship()['status'] != 'in_supercruise':
@@ -1023,7 +1039,9 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
         error('refuel=err1')
         return False
 
-    if ship()['fuel_percent'] < refuel_threshold and ship()['star_class'] in scoopable_stars:
+    if not check_state() == 1:
+        return False
+    elif ship()['fuel_percent'] < refuel_threshold and ship()['star_class'] in scoopable_stars:
         debug('refuel=start refuel')
         debug('Star Class: ' + ship()['star_class'])
         send(keys['SetSpeed100'])
@@ -1054,19 +1072,21 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
         return False
 
 
-# Discovery scanner
-scanner = 0
+def set_state(state):
+    global program_state
+    program_state = state
+    warning('Program State:' + str(program_state))
 
 
-def set_scanner(state):
-    global scanner
-    scanner = state
-    info('set_scanner=' + str(scanner))
-
-
-def get_scanner():
+def get_state():
     from dev_tray import STATE
     return STATE
+
+
+def check_state():
+    global program_state
+    program_state = get_state()
+    return program_state
 
 
 # Position
@@ -1118,6 +1138,12 @@ def position(refueled_multiplier=1):
 # 
 # 'in-docking'
 
+
+""" ###################### """
+""" SAFE NET FUNCTIONALITY """
+""" ###################### """
+
+
 def safe_net():
     try:
         if config['SafeNet']:
@@ -1152,21 +1178,30 @@ jump_count = 0
 total_dist_jumped = 0
 
 
-# noinspection PyStringFormat
+""" ############################## """
+""" Main Function """
+""" ############################## """
+
+
 def autopilot():
     autopilot_completed = False
     try:
-        global jump_count, total_dist_jumped, autopilot_start_time
+        global jump_count, total_dist_jumped, autopilot_start_time, program_state
+
         jump_count, total_dist_jumped = 0, 0
         autopilot_start_time = datetime.utcnow()
+        program_state = get_state()
 
         send_discord_webhook("▶️ Autopilot Engaged!")
-        while ship()['target']:
+
+        while ship()['target'] or program_state == 1:
             if ship()['status'] == 'in_space' or ship()['status'] == 'in_supercruise':
                 t1 = time()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT ALIGN' + '\n' + 20 * '-' + '\n')
+                program_state = get_state()
                 align()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT JUMP' + '\n' + 20 * '-' + '\n')
+                program_state = get_state()
                 jump()
 
                 ship_status = ship()
@@ -1204,8 +1239,10 @@ def autopilot():
                     )
 
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20 * '-' + '\n')
+                program_state = get_state()
                 refueled = refuel()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20 * '-' + '\n')
+                program_state = get_state()
                 if refueled:
                     position(refueled_multiplier=4)
                 else:
@@ -1224,6 +1261,7 @@ def autopilot():
         autopilot_completed = True
         autopilot_start_time = datetime.max
         # stop_action() #Stop SafeNet
+        clear_input(get_bindings())
     finally:
         if autopilot_completed is False:
             info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DISENGED' + '\n' + 20 * '-' + '\n')
