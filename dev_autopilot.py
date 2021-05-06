@@ -406,7 +406,7 @@ keys = get_bindings()
 for key in keys_to_obtain:
     try:
         info('Binding <' + str(key) + '>: ' + str(keys[key]))
-    except Exception as e:
+    except Exception:
         warning(
             str("<" + key + "> does not appear to have a valid keybind. This could cause issues with the script." +
                 "Please bind the key and restart the script.").upper())
@@ -837,22 +837,18 @@ def align():
         prep_engaged = datetime.now()
         send(keys['HyperSuperCombination'], hold=0.2)  # prep
     # while 1:
-    crude_align()
+    while not ship()['status'] == 'starting_hyperspace':
+        crude_align()
 
-    if ship()['status'] == 'starting_hyperspace':
-        return
+        if ship()['status'] == 'starting_hyperspace':
+            return
 
-    fine_align()
-    # if get_destination_offset():
-    # if fine_align():
-    #     return
-
-    # debug('align=complete')
+        fine_align()
 
 
 # Crude Align
 def crude_align():
-    close = 4
+    close = 3
     close_a = 10
 
     off = get_navpoint_offset()
@@ -881,8 +877,6 @@ def crude_align():
             if ship()['status'] == 'starting_hyperspace':
                 ReleaseKey(keys['RollRightButton']['key'])
                 ReleaseKey(keys['RollLeftButton']['key'])
-                ReleaseKey(keys['PitchUpButton']['key'])
-                ReleaseKey(keys['PitchDownButton']['key'])
                 return
 
             off = get_navpoint_offset(last=off)
@@ -895,6 +889,7 @@ def crude_align():
 
         while (off['y'] > close) or (off['y'] < -close):
             debug("Pitch aligning")
+
             if off['y'] > close:
                 send(keys['PitchUpButton'], state=1)
             else:
@@ -906,8 +901,6 @@ def crude_align():
                 send(keys['PitchDownButton'], state=0)
 
             if ship()['status'] == 'starting_hyperspace':
-                ReleaseKey(keys['RollRightButton']['key'])
-                ReleaseKey(keys['RollLeftButton']['key'])
                 ReleaseKey(keys['PitchUpButton']['key'])
                 ReleaseKey(keys['PitchDownButton']['key'])
                 return
@@ -925,6 +918,7 @@ def crude_align():
 
 # Fine Align
 def fine_align():
+    global new
     info('ALIGN: Executing fine jump alignment')
     sleep(0.5)
     close = 40
@@ -938,17 +932,17 @@ def fine_align():
             break
         else:
             crude_align()
-        if new is None:
-            return False
+    if new is None:
+        return False
 
     while (off['x'] > close) or (off['x'] < -close) or (off['y'] > close) or (off['y'] < -close):
         if off['x'] > close:
             send(keys['YawRightButton'], hold=hold_yaw)
-        if off['x'] < -close:
+        elif off['x'] < -close:
             send(keys['YawLeftButton'], hold=hold_yaw)
         if off['y'] > close:
             send(keys['PitchUpButton'], hold=hold_pitch)
-        if off['y'] < -close:
+        elif off['y'] < -close:
             send(keys['PitchDownButton'], hold=hold_pitch)
 
         if ship()['status'] == 'starting_hyperspace':
@@ -961,8 +955,8 @@ def fine_align():
                 break
             else:
                 crude_align()
-            if new is None:
-                return False
+        if new is None:
+            return False
 
         if (off['x'] <= close) and (off['x'] >= -close) and (off['y'] <= close) and (off['y'] >= -close):
             debug('ALIGN: Jump alignment complete')
@@ -1084,24 +1078,25 @@ def position(refueled_multiplier=1):
     elif config['DiscoveryScan'] == "Secondary":
         info('POSIT: Scanning system.')
         send(keys['SecondaryFire'], state=1)
-    sleep(1)
     send(keys['PitchUpButton'], state=1)
-    sleep(3)
-    send(keys['PitchUpButton'], state=0)
-    send(keys['SetSpeed100'])
-    send(keys['PitchUpButton'], state=1)
+    sleep(1.5 * (refueled_multiplier / 2 + 0.5))
+    send(keys['SetSpeed100'], state=1)
+    sleep(3.5)
     while sun_percent() > 3:
         sleep(1)
-    sleep(5)
-    send(keys['PitchUpButton'], state=0)
-    sleep(5 * refueled_multiplier)
-    info('POSIT: System entry positioning complete')
+
     if config['DiscoveryScan'] == "Primary":
         debug('position=scanning1')
         send(keys['PrimaryFire'], state=0)
     elif config['DiscoveryScan'] == "Secondary":
         debug('position=scanning2')
         send(keys['SecondaryFire'], state=0)
+
+    send(keys['PitchUpButton'], state=0)
+    sleep(5)
+    sleep(5 * refueled_multiplier)
+    info('POSIT: System entry positioning complete')
+
     return True
 
 
@@ -1155,13 +1150,13 @@ def kill_ed():
 
 jump_count = 0
 total_dist_jumped = 0
-autopilot_completed = False
 
 
+# noinspection PyStringFormat
 def autopilot():
     autopilot_completed = False
     try:
-        global jump_count, total_dist_jumped, autopilot_completed, autopilot_start_time
+        global jump_count, total_dist_jumped, autopilot_start_time
         jump_count, total_dist_jumped = 0, 0
         autopilot_start_time = datetime.utcnow()
 
@@ -1179,11 +1174,12 @@ def autopilot():
                 jump_count += 1
                 if ship_status['target']:
                     send_discord_webhook(
-                        "🚦 Jump #%d completed, arriving at %s. Average speed of %.2f jumps/hr. " +
-                        "%.2f LYs covered and %d jumps left to go." % (
+                        "🚦 Jump #%d completed, arriving at %s. Average speed of %.2f jumps/hr. " % (
                             jump_count,
                             ship_status['location'],
-                            ship_status['speed'],
+                            ship_status['speed']
+                        ) +
+                        "%.2f LYs covered and %d jumps left to go." % (
                             total_dist_jumped,
                             ship_status['jumps_remains']
                         )
@@ -1194,12 +1190,13 @@ def autopilot():
                     minutes = time_token % 3600 // 60
                     seconds = time_token % 60
                     send_discord_webhook(
-                        "🏁 Jump #%d completed, arriving at %s. %2f LYs covered over %d hours" +
-                        " %d minutes and %d seconds ( %.2f jumps per hour)" % (
+                        "🏁 Jump #%d completed, arriving at %s. %2f LYs covered over %d hours" % (
                             jump_count,
                             ship_status['location'],
                             total_dist_jumped,
-                            hours,
+                            hours
+                        ) +
+                        " %d minutes and %d seconds ( %.2f jumps per hour)" % (
                             minutes,
                             seconds,
                             jump_count / (time_token / 3600)
