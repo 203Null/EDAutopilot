@@ -634,7 +634,7 @@ same_last_count = 0
 last_last = {'x': 1, 'y': 100}
 
 
-def get_navpoint_offset(testing=True, last=None):
+def get_navpoint_offset(testing=False, last=None):
     t1 = time()
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
@@ -686,7 +686,7 @@ def get_navpoint_offset(testing=True, last=None):
     return result
 
 
-def get_destination_offset(testing=True, last=None):
+def get_destination_offset(testing=False, last=None):
     t1 = time()
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
