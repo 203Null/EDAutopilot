@@ -17,10 +17,6 @@
 #   6 - [Cross-platform GUI automation for human beings](https://pyautogui.readthedocs.io/en/latest/index.html)
 
 # Imports
-
-import sys
-import logging
-import random as rand
 from random import random
 from PIL import ImageGrab
 from time import sleep, time
@@ -67,18 +63,6 @@ if exists('config.json'):
 else:
     with open('config.json', 'w') as json_file:
         dump(config, json_file)
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = abspath(".")
-
-    return join(base_path, relative_path)
-
 
 # Logging
 basicConfig(filename='autopilot.log', level=DEBUG)
@@ -570,11 +554,11 @@ def get_compass_image(testing=False):
     t1 = time()
     while 1:
         if SCREEN_WIDTH == 3840:
-            compass_template = imread(resource_path("templates/compass_3840.png"), IMREAD_GRAYSCALE)
+            compass_template = imread(join(abspath("."), "templates/compass_3840.png"), IMREAD_GRAYSCALE)
         elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
-            compass_template = imread(resource_path("templates/compass_2560.png"), IMREAD_GRAYSCALE)
+            compass_template = imread(join(abspath("."), "templates/compass_2560.png"), IMREAD_GRAYSCALE)
         else:
-            compass_template = imread(resource_path("templates/compass_1920.png"), IMREAD_GRAYSCALE)
+            compass_template = imread(join(abspath("."), "templates/compass_1920.png"), IMREAD_GRAYSCALE)
         compass_width, compass_height = compass_template.shape[::-1]
         doubt = 10
         screen = get_screen((5 / 16) * SCREEN_WIDTH, (5 / 8) * SCREEN_HEIGHT, (2 / 4) * SCREEN_WIDTH,
@@ -638,11 +622,11 @@ def get_navpoint_offset(testing=False, last=None):
     t1 = time()
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
-        navpoint_template = imread(resource_path("templates/navpoint_3840.png"), IMREAD_GRAYSCALE)
+        navpoint_template = imread(join(abspath("."), "templates/navpoint_3840.png"), IMREAD_GRAYSCALE)
     elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
-        navpoint_template = imread(resource_path("templates/navpoint_2560.png"), IMREAD_GRAYSCALE)
+        navpoint_template = imread(join(abspath("."), "templates/navpoint_2560.png"), IMREAD_GRAYSCALE)
     else:
-        navpoint_template = imread(resource_path("templates/navpoint_1920.png"), IMREAD_GRAYSCALE)
+        navpoint_template = imread(join(abspath("."), "templates/navpoint_1920.png"), IMREAD_GRAYSCALE)
     navpoint_width, navpoint_height = navpoint_template.shape[::-1]
     compass_image, compass_width, compass_height = get_compass_image()
     # filtered = filter_blue(compass_image)
@@ -690,11 +674,11 @@ def get_destination_offset(testing=False, last=None):
     t1 = time()
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
-        destination_template = imread(resource_path("templates/destination_3840.png"), IMREAD_GRAYSCALE)
+        destination_template = imread(join(abspath("."), "templates/destination_3840.png"), IMREAD_GRAYSCALE)
     elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
-        destination_template = imread(resource_path("templates/destination_2560.png"), IMREAD_GRAYSCALE)
+        destination_template = imread(join(abspath("."), "templates/destination_2560.png"), IMREAD_GRAYSCALE)
     else:
-        destination_template = imread(resource_path("templates/destination_1920.png"), IMREAD_GRAYSCALE)
+        destination_template = imread(join(abspath("."), "templates/destination_1920.png"), IMREAD_GRAYSCALE)
     destination_width, destination_height = destination_template.shape[::-1]
     screen = get_screen((1 / 4) * SCREEN_WIDTH, (1 / 4) * SCREEN_HEIGHT, (3 / 4) * SCREEN_WIDTH,
                         (3 / 4) * SCREEN_HEIGHT)
