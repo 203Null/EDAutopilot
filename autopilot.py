@@ -4,7 +4,8 @@ from tkinter import messagebox
 
 import requests
 
-from dev_autopilot import resource_path, RELEASE
+from dev_autopilot import RELEASE
+from os.path import join, abspath
 from dev_tray import tray
 
 
@@ -20,7 +21,7 @@ def update():
             message = "There is a new version of EDAutopilot available!\nWould you like to go to the release download page?"
             root = tk.Tk()
             root.withdraw()
-            root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(file=resource_path('src/logo.png')))
+            root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(file=join(abspath("."), 'src/logo.png')))
             go_to_update = messagebox.askyesno("ED - Autopilot Update", message)
             if go_to_update:
                 webbrowser.open_new(data[0]['html_url'])
