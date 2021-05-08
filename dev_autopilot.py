@@ -16,27 +16,24 @@
 #   
 #   6 - [Cross-platform GUI automation for human beings](https://pyautogui.readthedocs.io/en/latest/index.html)
 
-from datetime import datetime
-from json import load, loads, dump
-from logging import basicConfig, INFO, DEBUG, StreamHandler, info, debug, warning, error, critical, exception
-from math import degrees, atan
-from os import environ, listdir, system
-from os.path import join, isfile, getmtime, getsize, abspath, exists
-# Imports
 from random import random
-from time import sleep, time
-from xml.etree.ElementTree import parse
-
 from PIL import ImageGrab
-from colorlog import getLogger, ColoredFormatter
-from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, waitKey, destroyAllWindows, \
-    COLOR_GRAY2BGR, COLOR_BGR2HSV, inRange, imread, IMREAD_GRAYSCALE, TM_CCOEFF_NORMED, matchTemplate, minMaxLoc, \
-    rectangle, circle  # see reference 2
-from discord_webhook import DiscordWebhook
+from pyautogui import size
+from time import sleep, time
+from datetime import datetime
+from math import degrees, atan
+from json import load, loads, dump
 from numpy import array, sum, where
-from pyautogui import size  # see reference 6
-
-from src.directinput import SCANCODE, PressKey, ReleaseKey  # see reference 5
+from os import environ, listdir, system
+from xml.etree.ElementTree import parse
+from discord_webhook import DiscordWebhook
+from colorlog import getLogger, ColoredFormatter
+from src.directinput import SCANCODE, PressKey, ReleaseKey
+from os.path import join, isfile, getmtime, getsize, abspath, exists
+from logging import basicConfig, INFO, DEBUG, StreamHandler, info, debug, warning, error, critical, exception
+from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, waitKey, destroyAllWindows,  \
+    COLOR_GRAY2BGR, COLOR_BGR2HSV, inRange, imread, IMREAD_GRAYSCALE, TM_CCOEFF_NORMED, matchTemplate, minMaxLoc, \
+    rectangle, circle
 
 """ ################################# """
 """ Constant and Variable declaration """

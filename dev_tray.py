@@ -4,7 +4,6 @@ from PIL import Image
 from pystray import Icon  # , MenuItem, Menu
 from os.path import join, abspath
 from ctypes import pythonapi, py_object
-
 from dev_autopilot import autopilot, get_bindings, clear_input, kill_ed, safe_net
 
 STATE = 1
