@@ -83,7 +83,7 @@ config = dict(DiscoveryScan="Primary",
               # EndKey='end',
               JumpTries=5,
               RefuelThreshold=30,
-              TerimationCountdown=120,
+              TerminationCountdown=120,
               # JournalPath="",
               # BindingsPath="",
               # GraphicsConfigPath="",
@@ -99,7 +99,6 @@ statusCacheSize = None
 keys = [None]
 autopilot_start_time = datetime.max
 prep_engaged = datetime.min
-program_state = 1
 
 # def get_config():
 if exists('config.json'):
@@ -108,7 +107,6 @@ if exists('config.json'):
 else:
     with open('config.json', 'w') as json_file:
         dump(config, json_file)
-
 
 # Logging
 
@@ -135,8 +133,7 @@ logger.info('This is an INFO message. These information is usually used for conv
 logger.warning('some warning message. These information is usually used for warning')
 logger.error('some error message. These information is usually used for errors and should not happen')
 logger.critical(
- 'some critical message. These information is usually used for critical error and usually results in an exception')
-
+    'some critical message. These information is usually used for critical error and usually results in an exception')
 
 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DATA ' + '\n' + 20 * '-' + '\n')
 
@@ -414,7 +411,6 @@ for key in keys_to_obtain:
             str("<" + key + "> does not appear to have a valid keybind. This could cause issues with the script." +
                 "Please bind the key and restart the script.").upper())
 
-
 """ ############# """
 """ Input Control """
 """ ############# """
@@ -676,7 +672,7 @@ def get_navpoint_offset(testing=False, last=None):
     debug('Nav Compass Point Offset: ' + str(result))
     t2 = time()
     t = t2 - t1
-    print("Navpoint Offset Aquisition time: ", t, " seconds")
+    print("Navpoint Offset Acquisition time: ", t, " seconds")
     return result
 
 
@@ -733,7 +729,7 @@ def get_destination_offset(testing=False, last=None):
         result = {'x': final_x, 'y': final_y}
     t2 = time()
     t = t2 - t1
-    print("Desitination Offset Aquisition Time: ", t, " seconds")
+    print("Destination Offset Acquisition Time: ", t, " seconds")
     debug('Destination Offset: ' + str(result))
     return result
 
@@ -847,10 +843,10 @@ def align():
         prep_engaged = datetime.now()
         send(keys['HyperSuperCombination'], hold=0.2)  # prep
     # while 1:
-    while (not ship()['status'] == 'starting_hyperspace') and check_state() == 1:
+    while not ship()['status'] == 'starting_hyperspace':
         crude_align()
 
-        if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
+        if ship()['status'] == 'starting_hyperspace':
             return
 
         fine_align()
@@ -864,17 +860,15 @@ def crude_align():
     off = get_navpoint_offset()
     ang = x_angle(off)
 
-    while off is None and check_state() == 1:  # Until NavPoint Found
+    while off is None:  # Until NavPoint Found
         send(keys['PitchUpButton'], state=1)
         off = get_navpoint_offset()
-        if check_state() == 0:
-            break
     send(keys['PitchUpButton'], state=0)
 
     info('ALIGN: Executing crude jump alignment.')
-    while check_state() == 1 and ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
-                                  (off['y'] > close) or (off['y'] < -close)):
-        while check_state() == 1 and (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
+    while ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
+           (off['y'] > close) or (off['y'] < -close)):
+        while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             debug("Roll aligning")
             if off['x'] > close and ang > close_a:
                 send(keys['RollRightButton'], state=1)
@@ -886,7 +880,7 @@ def crude_align():
             else:
                 send(keys['RollLeftButton'], state=0)
 
-            if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
+            if ship()['status'] == 'starting_hyperspace':
                 ReleaseKey(keys['RollRightButton']['key'])
                 ReleaseKey(keys['RollLeftButton']['key'])
                 return
@@ -899,7 +893,7 @@ def crude_align():
         ReleaseKey(keys['PitchUpButton']['key'])
         ReleaseKey(keys['PitchDownButton']['key'])
 
-        while check_state() == 1 and ((off['y'] > close) or (off['y'] < -close)):
+        while (off['y'] > close) or (off['y'] < -close):
             debug("Pitch aligning")
 
             if off['y'] > close:
@@ -912,7 +906,7 @@ def crude_align():
             else:
                 send(keys['PitchDownButton'], state=0)
 
-            if ship()['status'] == 'starting_hyperspace' or check_state() == 0:
+            if ship()['status'] == 'starting_hyperspace':
                 ReleaseKey(keys['PitchUpButton']['key'])
                 ReleaseKey(keys['PitchDownButton']['key'])
                 return
@@ -947,8 +941,7 @@ def fine_align():
     if new is None:
         return False
 
-    while check_state() == 1 and ((off['x'] > close) or (off['x'] < -close) or
-                                  (off['y'] > close) or (off['y'] < -close)):
+    while (off['x'] > close) or (off['x'] < -close) or (off['y'] > close) or (off['y'] < -close):
         if off['x'] > close:
             send(keys['YawRightButton'], hold=hold_yaw)
         elif off['x'] < -close:
@@ -1011,13 +1004,10 @@ def jump():
         send(keys['HyperSuperCombination'], hold=1)
         sleep(20)
         if ship()['status'] != 'starting_hyperspace':
-            debug('jump=misalign stop fsd')
+            debug('jump=misaligned stop fsd')
             send(keys['HyperSuperCombination'], hold=1)
             sleep(2)
             align()
-        elif not check_state() == 1:
-            send(keys['SetSpeedZero'])
-            return False
         else:
             debug('jump=in jump')
             while ship()['status'] != 'in_supercruise':
@@ -1037,9 +1027,6 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
     scoopable_stars = ['F', 'O', 'G', 'K', 'B', 'A', 'M']
     if ship()['status'] != 'in_supercruise':
         error('refuel=err1')
-        return False
-
-    if not check_state() == 1:
         return False
     elif ship()['fuel_percent'] < refuel_threshold and ship()['star_class'] in scoopable_stars:
         debug('refuel=start refuel')
@@ -1070,23 +1057,6 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
         return False
     else:
         return False
-
-
-def set_state(state):
-    global program_state
-    program_state = state
-    warning('Program State:' + str(program_state))
-
-
-def get_state():
-    from dev_tray import STATE
-    return STATE
-
-
-def check_state():
-    global program_state
-    program_state = get_state()
-    return program_state
 
 
 # Position
@@ -1168,15 +1138,14 @@ def safe_net():
 
 
 def kill_ed():
-    critical("Trying to ternimate Elite Dangerous!!")
-    send_discord_webhook("🛑 Trying to ternimate Elite Dangerous!! 🛑", True)
+    critical("Trying to terminate Elite Dangerous!!")
+    send_discord_webhook("🛑 Trying to terminate Elite Dangerous!! 🛑", True)
     for i in range(10):
         system("TASKKILL /F /IM EliteDangerous64.exe")
 
 
 jump_count = 0
 total_dist_jumped = 0
-
 
 """ ############################## """
 """ Main Function """
@@ -1186,22 +1155,21 @@ total_dist_jumped = 0
 def autopilot():
     autopilot_completed = False
     try:
-        global jump_count, total_dist_jumped, autopilot_start_time, program_state
+        global jump_count, total_dist_jumped, autopilot_start_time
 
         jump_count, total_dist_jumped = 0, 0
         autopilot_start_time = datetime.utcnow()
-        program_state = get_state()
 
         send_discord_webhook("▶️ Autopilot Engaged!")
 
-        while ship()['target'] or program_state == 1:
+        while ship()['target']:
             if ship()['status'] == 'in_space' or ship()['status'] == 'in_supercruise':
                 t1 = time()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT ALIGN' + '\n' + 20 * '-' + '\n')
-                program_state = get_state()
+
                 align()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT JUMP' + '\n' + 20 * '-' + '\n')
-                program_state = get_state()
+
                 jump()
 
                 ship_status = ship()
@@ -1239,10 +1207,10 @@ def autopilot():
                     )
 
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20 * '-' + '\n')
-                program_state = get_state()
+
                 refueled = refuel()
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20 * '-' + '\n')
-                program_state = get_state()
+
                 if refueled:
                     position(refueled_multiplier=4)
                 else:
@@ -1252,10 +1220,9 @@ def autopilot():
                 print("Complete Nav Cycle execution time: ", t, " seconds")
         send(keys['SetSpeedZero'])
         info('\n' + 20 * '-' + '\n' + 'AUTOPILOT END' + '\n' + 20 * '-' + '\n')
-        critical("Disable Autopilot now or it will exit in %d seconds" % config['TerimationCountdown'])
-        send_discord_webhook("⏹️ Autopilot Disengaged! Disable Autopilot now or it will exit in %d seconds" % config[
-            'TerimationCountdown'])
-        for i in range(config['TerimationCountdown']):
+        critical("Disable Autopilot now or it will exit in 120 seconds")
+        send_discord_webhook("⏹️ Autopilot Disengaged! Disable Autopilot now or it will exit in 120 seconds")
+        for i in range(1, 120):
             sleep(1)
         kill_ed()
         autopilot_completed = True
@@ -1264,7 +1231,7 @@ def autopilot():
         clear_input(get_bindings())
     finally:
         if autopilot_completed is False:
-            info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DISENGED' + '\n' + 20 * '-' + '\n')
+            info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DISENGAGED' + '\n' + 20 * '-' + '\n')
             send_discord_webhook("⏹️ Autopilot Disengaged!")
 
 
