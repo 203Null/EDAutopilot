@@ -862,7 +862,7 @@ def crude_align():
 
     while off is None:  # Until NavPoint Found
         send(keys['PitchUpButton'], state=1)
-        off = get_navpoint_offset()
+        off = get_navpoint_offset(last=off)
     send(keys['PitchUpButton'], state=0)
 
     info('ALIGN: Executing crude jump alignment.')
