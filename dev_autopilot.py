@@ -698,7 +698,7 @@ def get_destination_offset(testing=False, last=None):
                         (3 / 4) * SCREEN_HEIGHT)
     # mask_orange = filter_cyan(screen) #Custom color 203Null
     # equalized = equalize(screen)
-    filtered = filter_orange2(screen)
+    filtered = filter_bright(screen)
     match = matchTemplate(filtered, destination_template, TM_CCOEFF_NORMED)
     threshold = 0.6
     min_val, max_val, min_loc, max_loc = minMaxLoc(match)
