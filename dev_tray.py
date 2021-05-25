@@ -19,9 +19,9 @@ class ThreadWithException(threading.Thread):
     def run(self):
         # target function of the thread class
         if self.name == 'EDAutopilot':
-            autopilot()
+            autopilot(stop_action)
         elif self.name == 'SafeNet':
-            safe_net()
+            safe_net(stop_action)
 
     def get_id(self):
         # returns id of the respective thread
@@ -40,7 +40,8 @@ class ThreadWithException(threading.Thread):
 
 
 def setup(icon):
-    icon.visible = True
+    pass
+    # icon.visible = True
 
 
 def exit_action():

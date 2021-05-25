@@ -7,3 +7,4 @@ keyboard~=0.13.5
 opencv-python~=4.5.1.48
 Pillow~=8.0.0
 discord-webhook~=0.13.0
+mss~=6.1.0

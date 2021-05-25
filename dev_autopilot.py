@@ -18,12 +18,13 @@
 
 from random import random
 from PIL import ImageGrab
-from pyautogui import size
+from mss import mss
+from pyautogui import countdown, size
 from time import sleep, time
 from datetime import datetime
 from math import degrees, atan
 from json import load, loads, dump
-from numpy import array, sum, where
+from numpy import array, sum, where, asarray
 from os import environ, listdir, system
 from xml.etree.ElementTree import parse
 from discord_webhook import DiscordWebhook
@@ -57,6 +58,7 @@ keys_to_obtain = [
     'PitchDownButton',
     'SetSpeedZero',
     # 'SetSpeed25',
+    'SetSpeed75',
     'SetSpeed100',
     'HyperSuperCombination',
     'UIFocus',
@@ -308,10 +310,9 @@ def ship():
     # warning(jumps_lasthr)
     if len(jumps_lasthr) > 1:
         ship_status['speed'] = len(jumps_lasthr) / (max(jumps_lasthr) / 3600)
-    #     debug('ship='+str(ship))
     statusCache = ship_status
     statusCacheSize = statussize
-    debug('ship=' + str(ship()))
+    # debug('ship=' + str(ship()))
     return ship_status
 
 
@@ -420,9 +421,9 @@ def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
         warning('Attempted to send key press, but no key was provided.')
         return
 
-    debug(
-        'Sending key:' + str(key_to_send) + ', Hold:' + str(hold) + ', Repeat:' + str(repeat) + ', Repeat Delay:' + str(
-            repeat_delay) + ', State:' + str(state))
+    # debug(
+    #     'Sending key:' + str(key_to_send) + ', Hold:' + str(hold) + ', Repeat:' + str(repeat) + ', Repeat Delay:' + str(
+    #         repeat_delay) + ', State:' + str(state))
     for i in range(repeat):
 
         if state is None or state == 1:
@@ -469,9 +470,17 @@ def clear_input(to_clear=None):
 
 # Get screen
 def get_screen(x_left, y_top, x_right, y_bot):
-    screen = array(ImageGrab.grab(bbox=(x_left, y_top, x_right, y_bot)))
-    screen = cvtColor(screen, COLOR_RGB2BGR)
-    return screen
+    # t1 = time()
+    # screen = ImageGrab.grab(bbox=(x_left, y_top, x_right, y_bot))
+    # t2 = time()
+    # screen = array(screen)
+    # t3 = time()
+    # screen = cvtColor(screen, COLOR_RGB2BGR)
+    # # print("get_screen performance: " + str([t2-t1, t3-t2, time()-t3]))
+    # return screen
+    with mss() as sct:
+        img = sct.grab((int(x_left), int(y_top), int(x_right), int(y_bot)))
+        return asarray(img)
 
 
 # Equalization
@@ -495,7 +504,6 @@ def equalize(image=None, testing=False):
         else:
             break
     return img_out
-
 
 # Filter bright
 def filter_bright(image=None, testing=False):
@@ -564,34 +572,37 @@ def get_compass_image(testing=False):
             compass_template = imread(join(abspath("."), "templates/compass_1920.png"), IMREAD_GRAYSCALE)
         compass_width, compass_height = compass_template.shape[::-1]
         doubt = 10
+        # t2 = time()
         screen = get_screen((5 / 16) * SCREEN_WIDTH, (5 / 8) * SCREEN_HEIGHT, (2 / 4) * SCREEN_WIDTH,
                             (15 / 16) * SCREEN_HEIGHT)
+        # t3 = time()
+        # filtered = filter_orange(screen)
         equalized = equalize(screen)
+        # t4 = time()
         match = matchTemplate(equalized, compass_template, TM_CCOEFF_NORMED)
-        threshold = 0.2
+        # t5 = time()
+        threshold = 0.3
         min_val, max_val, min_loc, max_loc = minMaxLoc(match)
-        pt = (doubt, doubt)
-        if max_val >= threshold:
-            pt = max_loc
+        # t6 = time()
+        if max_val < threshold:
+            continue
+        pt = max_loc
 
-        compass_image = screen[
-                        pt[1] - doubt: pt[1] + compass_height + doubt,
-                        pt[0] - doubt: pt[0] + compass_width + doubt
-                        ].copy()
+        compass_image = screen[pt[1]-doubt: pt[1]+compass_height+doubt, pt[0]-doubt: pt[0]+compass_width+doubt].copy()
         if compass_image.size == 0:
             # Something has gone seriously wrong, we need to try again.
-            debug("get_compass_image] pt=" + str(pt))
-            debug("get_compass_image] doubt=" + str(doubt))
-            debug("get_compass_image] screen-tentative=" + str(
-                screen[pt[1] - doubt: pt[1] + compass_height + doubt, pt[0] - doubt: pt[0] + compass_width + doubt]))
-            debug("get_compass_image(b)]                      pt[1]=" + str(pt[1]))
-            debug("get_compass_image(b)]                pt[1]-doubt=" + str(pt[1] - doubt))
-            debug("get_compass_image(b)]             compass_height=" + str(compass_height))
-            debug("get_compass_image(b)] pt[1]+compass_height+doubt=" + str(pt[1] + compass_height + doubt))
-            debug("get_compass_image(b)]                      pt[0]=" + str(pt[0]))
-            debug("get_compass_image(b)]                pt[0]-doubt=" + str(pt[0] - doubt))
-            debug("get_compass_image(b)]              compass_width=" + str(compass_width))
-            debug("get_compass_image(b)]  pt[0]+compass_width+doubt=" + str(pt[0] + compass_height + doubt))
+            # debug("get_compass_image] pt=" + str(pt))
+            # debug("get_compass_image] doubt=" + str(doubt))
+            # debug("get_compass_image] screen-tentative=" + str(
+            #     screen[pt[1] - doubt: pt[1] + compass_height + doubt, pt[0] - doubt: pt[0] + compass_width + doubt]))
+            # debug("get_compass_image(b)]                      pt[1]=" + str(pt[1]))
+            # debug("get_compass_image(b)]                pt[1]-doubt=" + str(pt[1] - doubt))
+            # debug("get_compass_image(b)]             compass_height=" + str(compass_height))
+            # debug("get_compass_image(b)] pt[1]+compass_height+doubt=" + str(pt[1] + compass_height + doubt))
+            # debug("get_compass_image(b)]                      pt[0]=" + str(pt[0]))
+            # debug("get_compass_image(b)]                pt[0]-doubt=" + str(pt[0] - doubt))
+            # debug("get_compass_image(b)]              compass_width=" + str(compass_width))
+            # debug("get_compass_image(b)]  pt[0]+compass_width+doubt=" + str(pt[0] + compass_height + doubt))
             continue
         break
 
@@ -610,9 +621,10 @@ def get_compass_image(testing=False):
         if compass_image.shape[0] > 0 and compass_image.shape[1] > 0:
             imshow('Compass', compass_image)
         waitKey(1)
-    t2 = time()
-    t = t2 - t1
-    print("Get compass execution time is: ", t, " seconds.")
+    # debug("Get compass execution time is: %.2f millseconds" % ((time() - t1) * 1000))
+    # print([t2-t1, t3-t2, t4-t3, t5-t4, t6-t5])
+    result = {'x': compass_width, 'y': compass_height}
+    # debug('Compass Location: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
     return compass_image, compass_width + (2 * doubt), compass_height + (2 * doubt)
 
 
@@ -635,11 +647,13 @@ def get_navpoint_offset(testing=False, last=None):
     # filtered = filter_blue(compass_image)
     filtered = filter_bright(compass_image)
     match = matchTemplate(filtered, navpoint_template, TM_CCOEFF_NORMED)
-    threshold = 0.5
+    threshold = 0.3
     min_val, max_val, min_loc, max_loc = minMaxLoc(match)
     pt = (0, 0)
     if max_val >= threshold:
         pt = max_loc
+    # else:
+        # debug("Navpoint ignored, confidence %.2f" % max_val)
     final_x = (pt[0] + ((1 / 2) * navpoint_width)) - ((1 / 2) * compass_width)
     final_y = ((1 / 2) * compass_height) - (pt[1] + ((1 / 2) * navpoint_height))
     if testing:
@@ -666,10 +680,7 @@ def get_navpoint_offset(testing=False, last=None):
             result = None
     else:
         result = {'x': final_x, 'y': final_y}
-    debug('Nav Compass Point Offset: ' + str(result))
-    t2 = time()
-    t = t2 - t1
-    print("Navpoint Offset Acquisition time: ", t, " seconds")
+    debug('Nav Compass Point Offset: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
     return result
 
 
@@ -686,8 +697,9 @@ def get_destination_offset(testing=False, last=None):
     screen = get_screen((1 / 4) * SCREEN_WIDTH, (1 / 4) * SCREEN_HEIGHT, (3 / 4) * SCREEN_WIDTH,
                         (3 / 4) * SCREEN_HEIGHT)
     # mask_orange = filter_cyan(screen) #Custom color 203Null
-    equalized = equalize(screen)
-    match = matchTemplate(equalized, destination_template, TM_CCOEFF_NORMED)
+    # equalized = equalize(screen)
+    filtered = filter_orange2(screen)
+    match = matchTemplate(filtered, destination_template, TM_CCOEFF_NORMED)
     threshold = 0.6
     min_val, max_val, min_loc, max_loc = minMaxLoc(match)
     pt = (0, 0)
@@ -726,8 +738,7 @@ def get_destination_offset(testing=False, last=None):
         result = {'x': final_x, 'y': final_y}
     t2 = time()
     t = t2 - t1
-    print("Destination Offset Acquisition Time: ", t, " seconds")
-    debug('Destination Offset: ' + str(result))
+    debug('Destination Offset: ' + str(result) + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
     return result
 
 
@@ -823,13 +834,14 @@ def align():
         error('Ship align failed.')
         send_discord_webhook("❌ Ship align failed.", True)
         raise Exception('align failed.')
-    info('ALIGN: Setting speed to 100%')
-    send(keys['SetSpeed100'])
 
     info('ALIGN: Executing star avoidance maneuver')
     while sun_percent() > 3:
         send(keys['PitchUpButton'], state=1)
     send(keys['PitchUpButton'], state=0)
+
+    info('ALIGN: Setting speed to 100%')
+    send(keys['SetSpeed75'])
 
     # left = False
     # right = False
@@ -839,15 +851,13 @@ def align():
         global prep_engaged
         prep_engaged = datetime.now()
         send(keys['HyperSuperCombination'], hold=0.2)  # prep
-    # while 1:
-    while not ship()['status'] == 'starting_hyperspace':
-        crude_align()
 
-        if ship()['status'] == 'starting_hyperspace':
-            return
+    crude_align()
 
-        fine_align()
+    if ship()['status'] == 'starting_hyperspace':
+        return
 
+    fine_align()
 
 # Crude Align
 def crude_align():
@@ -865,17 +875,22 @@ def crude_align():
     info('ALIGN: Executing crude jump alignment.')
     while ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
            (off['y'] > close) or (off['y'] < -close)):
+        ReleaseKey(keys['RollRightButton']['key'])
+        ReleaseKey(keys['RollLeftButton']['key'])
+        ReleaseKey(keys['PitchUpButton']['key'])
+        ReleaseKey(keys['PitchDownButton']['key'])
+
         while (off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a):
             debug("Roll aligning")
             if off['x'] > close and ang > close_a:
-                send(keys['RollRightButton'], state=1)
+                PressKey(keys['RollRightButton']['key'])
             else:
-                send(keys['RollRightButton'], state=0)
+                ReleaseKey(keys['RollRightButton']['key'])
 
             if off['x'] < -close and ang < -close_a:
-                send(keys['RollLeftButton'], state=1)
+                PressKey(keys['RollLeftButton']['key'])
             else:
-                send(keys['RollLeftButton'], state=0)
+                ReleaseKey(keys['RollLeftButton']['key'])
 
             if ship()['status'] == 'starting_hyperspace':
                 ReleaseKey(keys['RollRightButton']['key'])
@@ -894,14 +909,14 @@ def crude_align():
             debug("Pitch aligning")
 
             if off['y'] > close:
-                send(keys['PitchUpButton'], state=1)
+                PressKey(keys['PitchUpButton']['key'])
             else:
-                send(keys['PitchUpButton'], state=0)
+                ReleaseKey(keys['PitchUpButton']['key'])
 
             if off['y'] < -close:
-                send(keys['PitchDownButton'], state=1)
+                PressKey(keys['PitchDownButton']['key'])
             else:
-                send(keys['PitchDownButton'], state=0)
+                ReleaseKey(keys['PitchDownButton']['key'])
 
             if ship()['status'] == 'starting_hyperspace':
                 ReleaseKey(keys['PitchUpButton']['key'])
@@ -940,13 +955,21 @@ def fine_align():
 
     while (off['x'] > close) or (off['x'] < -close) or (off['y'] > close) or (off['y'] < -close):
         if off['x'] > close:
-            send(keys['YawRightButton'], hold=hold_yaw)
+            PressKey(keys['YawRightButton']['key'])
         elif off['x'] < -close:
-            send(keys['YawLeftButton'], hold=hold_yaw)
+            PressKey(keys['YawLeftButton']['key'])
+        else:
+            ReleaseKey(keys['YawRightButton']['key'])
+            ReleaseKey(keys['YawLeftButton']['key'])
+
         if off['y'] > close:
-            send(keys['PitchUpButton'], hold=hold_pitch)
+            PressKey(keys['PitchUpButton']['key'])
         elif off['y'] < -close:
-            send(keys['PitchDownButton'], hold=hold_pitch)
+            PressKey(keys['PitchDownButton']['key'])
+        else:
+            ReleaseKey(keys['PitchDownButton']['key'])
+            ReleaseKey(keys['PitchUpButton']['key'])
+
 
         if ship()['status'] == 'starting_hyperspace':
             return True
@@ -957,12 +980,20 @@ def fine_align():
                 off = new
                 break
             else:
+                ReleaseKey(keys['YawRightButton']['key'])
+                ReleaseKey(keys['YawLeftButton']['key'])
+                ReleaseKey(keys['PitchDownButton']['key'])
+                ReleaseKey(keys['PitchUpButton']['key'])
                 crude_align()
         if new is None:
             return False
 
         if (off['x'] <= close) and (off['x'] >= -close) and (off['y'] <= close) and (off['y'] >= -close):
             debug('ALIGN: Jump alignment complete')
+            ReleaseKey(keys['YawRightButton']['key'])
+            ReleaseKey(keys['YawLeftButton']['key'])
+            ReleaseKey(keys['PitchDownButton']['key'])
+            ReleaseKey(keys['PitchUpButton']['key'])
             return True
 
 
@@ -1033,12 +1064,14 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
         debug('refuel=wait for refuel')
         sleep(4)
         send(keys['SetSpeedZero'], repeat=3)
-        # sleep(5)
-        # while ship()['is_scooping'] is False:
-        #     send(keys['SetSpeed100'])
-        #     sleep(1)
-        #     send(keys['SetSpeedZero'], repeat=3)
-        #     sleep(5)
+        refuel_time = time()
+        while ship()['is_scooping'] is False or time() - refuel_time < 10: #Wait for journal to report on scooping
+            continue
+        while ship()['is_scooping'] is False:
+            send(keys['SetSpeed100'])
+            sleep(1)
+            send(keys['SetSpeedZero'], repeat=3)
+            sleep(10)
         debug('refuel=scooping detected')
 
         while not ship()['fuel_percent'] == 100:
@@ -1058,6 +1091,11 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
 
 # Position
 def position(refueled_multiplier=1):
+    # info('POSIT: Waiting to enter system')
+    # while sun_percent() < 10:
+    #     print(sun_percent())
+    #     # continue
+    # sleep(2)
     info('POSIT: Starting system entry positioning maneuver')
     if config['DiscoveryScan'] == "Primary":
         info('POSIT: Scanning system.')
@@ -1065,12 +1103,20 @@ def position(refueled_multiplier=1):
     elif config['DiscoveryScan'] == "Secondary":
         info('POSIT: Scanning system.')
         send(keys['SecondaryFire'], state=1)
+
+    if refueled_multiplier <= 1:
+        send(keys['SetSpeed75'])
     send(keys['PitchUpButton'], state=1)
-    sleep(1.5 * (refueled_multiplier / 2 + 0.5))
-    send(keys['SetSpeed100'], state=1)
-    sleep(3.5)
-    while sun_percent() > 3:
-        sleep(1)
+    sleep(4)
+    send(keys['PitchUpButton'], state=0)
+    send(keys['SetSpeed100'])
+    send(keys['PitchUpButton'], state=1)
+    # while sun_percent() > 3:
+    #     sleep(1)
+    sleep(4)
+    send(keys['PitchUpButton'], state=0)
+    sleep(5*refueled_multiplier)
+    info('POSIT: System entry positioning complete')
 
     if config['DiscoveryScan'] == "Primary":
         debug('position=scanning1')
@@ -1078,12 +1124,6 @@ def position(refueled_multiplier=1):
     elif config['DiscoveryScan'] == "Secondary":
         debug('position=scanning2')
         send(keys['SecondaryFire'], state=0)
-
-    send(keys['PitchUpButton'], state=0)
-    sleep(5)
-    sleep(5 * refueled_multiplier)
-    info('POSIT: System entry positioning complete')
-
     return True
 
 
@@ -1111,7 +1151,7 @@ def position(refueled_multiplier=1):
 """ ###################### """
 
 
-def safe_net():
+def safe_net(callback):
     try:
         if config['SafeNet']:
             info('SAFENET: Ship Damage Safenet Activated!')
@@ -1123,10 +1163,12 @@ def safe_net():
                     critical("Ship Damage Detected, Exiting Game.")
                     send_discord_webhook("🔥🔥🔥 Damage Detected, Exiting Game 🔥🔥🔥", True)
                     kill_ed()
+                    callback()
                     return
                 if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
                     critical("Ship dropped from supercurise")
                     send_discord_webhook("❌ Ship dropped from supercurise. Action required", True)
+                    callback()
                 last_ship_status = ship()['status']
                 sleep(1)
     finally:
@@ -1149,8 +1191,9 @@ total_dist_jumped = 0
 """ ############################## """
 
 
-def autopilot():
+def autopilot(callback):
     autopilot_completed = False
+
     try:
         global jump_count, total_dist_jumped, autopilot_start_time
 
@@ -1162,6 +1205,7 @@ def autopilot():
         while ship()['target']:
             if ship()['status'] == 'in_space' or ship()['status'] == 'in_supercruise':
                 t1 = time()
+
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT ALIGN' + '\n' + 20 * '-' + '\n')
 
                 align()
@@ -1206,17 +1250,19 @@ def autopilot():
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20 * '-' + '\n')
 
                 refueled = refuel()
-                info('\n' + 20 * '-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20 * '-' + '\n')
 
+                info('\n' + 20 * '-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20 * '-' + '\n')
                 if refueled:
-                    position(refueled_multiplier=4)
+                    position(refueled_multiplier=3)
                 else:
                     position(refueled_multiplier=1)
+
                 t2 = time()
                 t = t2 - t1
                 print("Complete Nav Cycle execution time: ", t, " seconds")
         send(keys['SetSpeedZero'])
         info('\n' + 20 * '-' + '\n' + 'AUTOPILOT END' + '\n' + 20 * '-' + '\n')
+        clear_input(get_bindings())
         critical("Disable Autopilot now or it will exit in 120 seconds")
         send_discord_webhook("⏹️ Autopilot Disengaged! Disable Autopilot now or it will exit in 120 seconds")
         for i in range(1, 120):
@@ -1224,8 +1270,7 @@ def autopilot():
         kill_ed()
         autopilot_completed = True
         autopilot_start_time = datetime.max
-        # stop_action() #Stop SafeNet
-        clear_input(get_bindings())
+        callback()
     finally:
         if autopilot_completed is False:
             info('\n' + 20 * '-' + '\n' + 'AUTOPILOT DISENGAGED' + '\n' + 20 * '-' + '\n')
