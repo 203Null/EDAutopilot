@@ -855,12 +855,12 @@ def crude_align():
     close_a = 10
 
     off = get_navpoint_offset()
-    ang = x_angle(off)
-
     while off is None:  # Until NavPoint Found
         send(keys['PitchUpButton'], state=1)
         off = get_navpoint_offset(last=off)
     send(keys['PitchUpButton'], state=0)
+
+    ang = x_angle(off)
 
     info('ALIGN: Executing crude jump alignment.')
     while ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
