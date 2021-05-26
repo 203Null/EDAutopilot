@@ -841,7 +841,7 @@ def align(override_prepjump = False):
     send(keys['PitchUpButton'], state=0)
 
     info('ALIGN: Setting speed to 100%')
-    send(keys['SetSpeed75'])
+    send(keys['SetSpeed100'])
 
     # left = False
     # right = False
