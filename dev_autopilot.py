@@ -827,7 +827,7 @@ def dock():
     return True
 
 
-def align():
+def align(override_prepjump = False):
     info('ALIGN: Starting Align Sequence')
     if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or
             ship()['status'] == 'starting_supercruise'):
@@ -847,7 +847,7 @@ def align():
     # right = False
     # up = False
     # down = False
-    if config['PrepJump']:
+    if config['PrepJump'] and override_prepjump == False :
         global prep_engaged
         prep_engaged = datetime.now()
         send(keys['HyperSuperCombination'], hold=0.2)  # prep
@@ -1021,13 +1021,13 @@ def jump():
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
     for i in range(config['JumpTries']):
-        info('JUMP: Hyperspace Jump attempt #' + str(i))
+        info('JUMP: Hyperspace Jump attempt #' + str(i + 1))
         if not (ship()['status'] == 'in_supercruise' or ship()['status'] == 'in_space' or
                 ship()['status'] == 'starting_supercruise'):
             error('FSD Jump Failed')
             send_discord_webhook("❌ FSD Jump Failed", True)
             raise Exception('FSD Jump Failed')
-        sleep(0.5)
+        # sleep(0.5)
         debug('jump=start fsd')
         send(keys['HyperSuperCombination'], hold=1)
         sleep(20)
