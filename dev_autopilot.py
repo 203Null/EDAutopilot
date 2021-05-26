@@ -1108,9 +1108,9 @@ def position(refueled_multiplier=1):
         send(keys['SetSpeed75'])
     send(keys['PitchUpButton'], state=1)
     sleep(4)
-    send(keys['PitchUpButton'], state=0)
+    # send(keys['PitchUpButton'], state=0)
     send(keys['SetSpeed100'])
-    send(keys['PitchUpButton'], state=1)
+    # send(keys['PitchUpButton'], state=1)
     # while sun_percent() > 3:
     #     sleep(1)
     sleep(4)
