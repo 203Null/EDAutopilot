@@ -684,7 +684,7 @@ def get_navpoint_offset(testing=False, last=None):
     return result
 
 
-def get_destination_offset(testing=False, last=None):
+def get_destination_offset(testing=True, last=None):
     t1 = time()
     global same_last_count, last_last
     if SCREEN_WIDTH == 3840:
@@ -697,10 +697,10 @@ def get_destination_offset(testing=False, last=None):
     screen = get_screen((1 / 4) * SCREEN_WIDTH, (1 / 4) * SCREEN_HEIGHT, (3 / 4) * SCREEN_WIDTH,
                         (3 / 4) * SCREEN_HEIGHT)
     # mask_orange = filter_cyan(screen) #Custom color 203Null
-    # equalized = equalize(screen)
-    filtered = filter_bright(screen)
-    match = matchTemplate(filtered, destination_template, TM_CCOEFF_NORMED)
-    threshold = 0.6
+    equalized = equalize(screen)
+    # filtered = filter_bright(screen)
+    match = matchTemplate(equalized, destination_template, TM_CCOEFF_NORMED)
+    threshold = 0.3
     min_val, max_val, min_loc, max_loc = minMaxLoc(match)
     pt = (0, 0)
     if max_val >= threshold:
@@ -738,7 +738,7 @@ def get_destination_offset(testing=False, last=None):
         result = {'x': final_x, 'y': final_y}
     t2 = time()
     t = t2 - t1
-    debug('Destination Offset: ' + str(result) + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
+    debug('Destination Offset: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
     return result
 
 
