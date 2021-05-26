@@ -32,7 +32,7 @@ from colorlog import getLogger, ColoredFormatter
 from src.directinput import SCANCODE, PressKey, ReleaseKey
 from os.path import join, isfile, getmtime, getsize, abspath, exists
 from logging import basicConfig, INFO, DEBUG, StreamHandler, info, debug, warning, error, critical, exception
-from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, waitKey, destroyAllWindows,  \
+from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, waitKey, destroyAllWindows, imwrite,  \
     COLOR_GRAY2BGR, COLOR_BGR2HSV, inRange, imread, IMREAD_GRAYSCALE, TM_CCOEFF_NORMED, matchTemplate, minMaxLoc, \
     rectangle, circle
 
@@ -683,10 +683,10 @@ def get_navpoint_offset(testing=False, last=None):
     debug('Nav Compass Point Offset: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
     return result
 
-
+image_id = 0
 def get_destination_offset(testing=True, last=None):
     t1 = time()
-    global same_last_count, last_last
+    global same_last_count, last_last, image_id
     if SCREEN_WIDTH == 3840:
         destination_template = imread(join(abspath("."), "templates/destination_3840.png"), IMREAD_GRAYSCALE)
     elif SCREEN_WIDTH == 2560 or SCREEN_WIDTH == 3440:
@@ -705,15 +705,17 @@ def get_destination_offset(testing=True, last=None):
     pt = (0, 0)
     if max_val >= threshold:
         pt = max_loc
-    br = (pt[0] + destination_width, pt[1] + destination_height)
 
-    width = (1 / 3) * SCREEN_WIDTH
-    height = (1 / 4) * SCREEN_HEIGHT
+    width = (1 / 2) * SCREEN_WIDTH
+    height = (1 / 2) * SCREEN_HEIGHT
 
-    final_x = (pt[0] + ((1 / 2) * destination_width)) - ((1 / 2) * width)
-    final_y = ((1 / 2) * height) - (pt[1] + ((1 / 2) * destination_height))
+    final_x = pt[0] + ((1 / 2) * destination_width) - (1 / 2) * width
+    final_y = pt[1] + ((1 / 2) * destination_height) - (1 / 2) * height
     if testing:
+        br = (max_loc[0] + destination_width, max_loc[1] + destination_height)
         rectangle(screen, pt, br, (0, 0, 255), 2)
+        # imwrite("destination_%i (%.2f).jpg" % (image_id, max_val ), screen, )
+        # image_id += 1
         imshow('Destination Found', screen)
         imshow('Destination Mask', equalized)
         waitKey(1)
@@ -739,6 +741,7 @@ def get_destination_offset(testing=True, last=None):
     t2 = time()
     t = t2 - t1
     debug('Destination Offset: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
+    debug(pt)
     return result
 
 
@@ -1192,6 +1195,9 @@ total_dist_jumped = 0
 
 
 def autopilot(callback):
+    # while True:
+    #     # fine_align()
+    #     get_destination_offset()
     autopilot_completed = False
 
     try:
