@@ -4,6 +4,5 @@ __pycache__
 *.spec
 build
 dist
-*.bat
 *.log
 venv

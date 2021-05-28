@@ -3,18 +3,14 @@ Elite Dangerous computer vision based autopilot version 2
 
 Program uses openCV and other tools in python to navigate automatically in Elite Dangerous.
 
-Look [here for the autopilot alpha version release](https://github.com/skai2/EDAutopilot/releases).
-
 ## Usage:
-The program will create an icon on the taskbar.
-
-  1. Setup a route in the galaxy map as you would normally, then:
+  0. Config your setting by editing the config.json
   
-  - Optionally right click the taskbar icon to set which fire group (primary or secondary) you have configured your discovery scanner to, to enable auto-scanner (remember you must have a *keyboard*, not mouse, binding as well)
+  1. Setup a route in the galaxy map as you would normally, then:
 
-  2. Press **Home** key to start autopilot.
+  2. Press **Page Up** key to start autopilot.
 
-  3. Press **End** key to abort autopilot.  
+  3. Press **Page Down** key to abort autopilot.  
 
 ## Necessary Setup:
 In game, you must have configured keyboard keys for all of the following. You may configure them in either
@@ -28,6 +24,7 @@ the left or the right slot, and this program will automatically fetch your most 
     * Pitch Down
   * In 'Flight Throttle':
     * Set Speed To 0%
+    * Set Speed To 75%
     * Set Speed To 100%
   * In 'Flight Miscellaneous'
     * Toggle Frameshift Drive
@@ -45,9 +42,10 @@ the left or the right slot, and this program will automatically fetch your most 
     * Reset Headlook
 
 ## Optimal Game Settings:
-1. Game resolution:      1080p Borderless
-2. Ship UI color:        Orange (default colour)
-3. Ship UI brightness:   Maximum
+1. Game resolution:      1080p Borderless (1080p, 1440p, 2160p All works fine)
+2. Ship UI color:        Orange (default colour) (Custom color should works fine)
+3. Ship UI brightness:   60% ~ 100%
+4. FOV: Lowest position in the slider
 
 ## General Guidelines
 
@@ -60,14 +58,22 @@ Or if you'd like to set it up and run the script directly...
 _Requires **python 3** and **git**_
 1. Clone this repository
 ```sh
-> git clone https://github.com/TomW1605/EDAutopilot.git
+> git clone https://github.com/203Null/EDAutopilot.git
 ```
+or just download the entire repo as a zip
+
 2. Install requirements
 ```sh
 > cd EDAutoPilot
 > pip install -r requirements.txt
 ```
 3. Run script
+
+#### Windows
+Run the run.bat if you only have python3 installed. 
+If youu have both python 2 and python 3 then change the python in the bat to python3
+
+#### Other System
 ```sh
 > python autopilot.py
 OR you may have to run
@@ -89,4 +95,4 @@ Use at YOUR OWN RISK.
 
 ## CONTACT:
 
-skai2mail@gmail.com
+Discord NuLL#0156
