@@ -5,8 +5,8 @@
    "JumpTries":5,
    "RefuelThreshold":30,
    "TerimationCountdown":120,
-   "DiscordWebhook":true,
-   "DiscordWebhookURL":"https://discordapp.com/api/webhooks/834414537528705085/sCWhPa8GU8jElJ7miz4lqbfpZdzR_tInVh0sXpKsXHFWVo1BRkbI8iFBG1NZPe61YtGk",
-   "DiscordUserID":"311961554457329665",
+   "DiscordWebhook":false,
+   "DiscordWebhookURL":"",
+   "DiscordUserID":"",
    "DebugLog":true
 }
