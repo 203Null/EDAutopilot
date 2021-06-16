@@ -42,7 +42,7 @@ from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, wa
 """ ################################# """
 
 # Constants
-RELEASE = 'v19.05.15-alpha-18'
+RELEASE = '2021-6-16-0 203Null'
 PATH_LOG_FILES, PATH_KEYBINDINGS = None, None
 KEY_MOD_DELAY = 0.010
 KEY_REPEAT_DELAY = 0.100
