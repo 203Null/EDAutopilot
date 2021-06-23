@@ -19,7 +19,7 @@
 from random import random
 from PIL import ImageGrab
 from mss import mss
-from pyautogui import countdown, size
+from pyautogui import size
 from time import sleep, time
 from datetime import datetime
 from math import degrees, atan
@@ -42,7 +42,7 @@ from cv2 import cvtColor, COLOR_RGB2BGR, COLOR_BGR2GRAY, createCLAHE, imshow, wa
 """ ################################# """
 
 # Constants
-RELEASE = '2021-6-16-0 203Null'
+RELEASE = '2021-6-23-0 203Null'
 PATH_LOG_FILES, PATH_KEYBINDINGS = None, None
 KEY_MOD_DELAY = 0.010
 KEY_REPEAT_DELAY = 0.100
