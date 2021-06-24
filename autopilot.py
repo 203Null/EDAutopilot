@@ -32,5 +32,5 @@ def update():
 
 
 if __name__ == '__main__':
-    if not update():
-        tray()
+    # if not update():
+    tray()

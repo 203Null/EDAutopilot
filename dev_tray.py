@@ -66,11 +66,11 @@ def start_action():
 def stop_action():
     global main_thread, safeNet_thread
 
-    if main_thread.isAlive:
+    if main_thread != None and main_thread.isAlive:
         main_thread.raise_exception()
         main_thread.join()
 
-    if safeNet_thread.isAlive:
+    if safeNet_thread != None and safeNet_thread.isAlive:
         safeNet_thread.raise_exception()
         safeNet_thread.join()
 

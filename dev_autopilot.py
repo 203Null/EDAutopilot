@@ -265,8 +265,8 @@ def ship():
                 # parse location
                 if (log_event == 'Location' or log_event == 'StartJump') and 'StarSystem' in log:
                     ship_status['location'] = log['StarSystem']
-                if 'StarClass' in log:
-                    ship_status['star_class'] = log['StarClass']
+                    if 'StarClass' in log:
+                        ship_status['star_class'] = log['StarClass']
 
                 # parse target
                 if log_event == 'FSDTarget':
@@ -421,9 +421,9 @@ def send(key_to_send, hold=None, repeat=1, repeat_delay=None, state=None):
         warning('Attempted to send key press, but no key was provided.')
         return
 
-    # debug(
-    #     'Sending key:' + str(key_to_send) + ', Hold:' + str(hold) + ', Repeat:' + str(repeat) + ', Repeat Delay:' + str(
-    #         repeat_delay) + ', State:' + str(state))
+    debug(
+        'Sending key:' + str(key_to_send) + ', Hold:' + str(hold) + ', Repeat:' + str(repeat) + ', Repeat Delay:' + str(
+            repeat_delay) + ', State:' + str(state))
     for i in range(repeat):
 
         if state is None or state == 1:
@@ -664,12 +664,11 @@ def get_navpoint_offset(testing=False, last=None):
     if pt == (0, 0):
         if last:
             if last == last_last:
-                same_last_count = same_last_count + 1
+                same_last_count += 1
             else:
                 last_last = last
                 same_last_count = 0
-            if same_last_count > 5:
-                same_last_count = 0
+            if same_last_count > 10:
                 if random() < .9:
                     result = {'x': 1, 'y': 100}
                 else:
@@ -677,7 +676,7 @@ def get_navpoint_offset(testing=False, last=None):
             else:
                 result = last
         else:
-            result = None
+            result = {'x': 1, 'y': 100}
     else:
         result = {'x': final_x, 'y': final_y}
     debug('Nav Compass Point Offset: ' + str(result) + " (confidence %.2f)" % max_val + " (Acquisition time: %.2f ms)" % ((time() - t1) * 1000))
@@ -840,8 +839,8 @@ def align(override_prepjump = False):
 
     info('ALIGN: Executing star avoidance maneuver')
     while sun_percent() > 3:
-        send(keys['PitchUpButton'], state=1)
-    send(keys['PitchUpButton'], state=0)
+        PressKey(keys['PitchUpButton']['key'])
+    ReleaseKey(keys['PitchUpButton']['key'])
 
     info('ALIGN: Setting speed to 100%')
     send(keys['SetSpeed100'])
@@ -864,20 +863,20 @@ def align(override_prepjump = False):
 
 # Crude Align
 def crude_align():
-    close = 3
+    close = 5
     close_a = 10
 
     off = get_navpoint_offset()
     while off is None:  # Until NavPoint Found
-        send(keys['PitchUpButton'], state=1)
+        PressKey(keys['PitchUpButton']['key'])
         off = get_navpoint_offset(last=off)
-    send(keys['PitchUpButton'], state=0)
+    ReleaseKey(keys['PitchUpButton']['key'])
 
     ang = x_angle(off)
 
     info('ALIGN: Executing crude jump alignment.')
     while ((off['x'] > close and ang > close_a) or (off['x'] < -close and ang < -close_a) or
-           (off['y'] > close) or (off['y'] < -close)):
+           (off['y'] > close) or (off['y'] < -close / 2)): #perfer y on top so ship doesn't block target ring
         ReleaseKey(keys['RollRightButton']['key'])
         ReleaseKey(keys['RollLeftButton']['key'])
         ReleaseKey(keys['PitchUpButton']['key'])
@@ -908,7 +907,7 @@ def crude_align():
         ReleaseKey(keys['PitchUpButton']['key'])
         ReleaseKey(keys['PitchDownButton']['key'])
 
-        while (off['y'] > close) or (off['y'] < -close):
+        while (off['y'] > close) or (off['y'] < -close / 2):
             debug("Pitch aligning")
 
             if off['y'] > close:
@@ -1006,7 +1005,7 @@ def jump():
     # global prep_engaged
 
     if (datetime.now() - prep_engaged).seconds < 20:
-        info("JUMP: Preped jump detected. %d seconds remaining" % (datetime.now() - prep_engaged).seconds)
+        info("JUMP: Preped jump detected. %d seconds remaining" % (20 - (datetime.now() - prep_engaged).seconds))
 
     while (datetime.now() - prep_engaged).seconds < 20 and ship()['status'] != 'starting_hyperspace':
         sleep(1)
@@ -1017,9 +1016,9 @@ def jump():
         info('JUMP: Hyperspace Jump in Progress')
         while ship()['status'] != 'in_supercruise':
             sleep(1)
-        debug('jump=speed 0')
-        send(keys['SetSpeedZero'])
         info('JUMP: Jump Complete')
+        debug('jump=speed 0')
+        send(keys['SetSpeedZero']) #You really should use the super curise computer but here's a back up
         return True
 
     # send(keys['HyperSuperCombination'], hold=1) #Cancel the prepjump
@@ -1035,17 +1034,16 @@ def jump():
         send(keys['HyperSuperCombination'], hold=1)
         sleep(20)
         if ship()['status'] != 'starting_hyperspace':
-            debug('jump=misaligned stop fsd')
+            info('JUMP: Hyperspace Jump Failedm realigning.')
             send(keys['HyperSuperCombination'], hold=1)
-            sleep(2)
             align()
         else:
-            debug('jump=in jump')
+            info('JUMP: Hyperspace Jump in Progress')
             while ship()['status'] != 'in_supercruise':
                 sleep(1)
             debug('jump=speed 0')
             send(keys['SetSpeedZero'])
-            debug('jump=complete')
+            info('JUMP: Jump Complete')
             return True
     error('jump=err2')
     send_discord_webhook("❌ FSD Jump Failed", True)
@@ -1062,17 +1060,17 @@ def refuel(refuel_threshold=config['RefuelThreshold']):
     elif ship()['fuel_percent'] < refuel_threshold and ship()['star_class'] in scoopable_stars:
         debug('refuel=start refuel')
         debug('Star Class: ' + ship()['star_class'])
-        send(keys['SetSpeed100'])
+        send(keys['SetSpeed100'], repeat=3)
         send_discord_webhook("⛽⌛ Fuel Scooping")
         debug('refuel=wait for refuel')
-        sleep(4)
+        sleep(3)
         send(keys['SetSpeedZero'], repeat=3)
         refuel_time = time()
-        while ship()['is_scooping'] is False or time() - refuel_time < 10: #Wait for journal to report on scooping
+        while ship()['is_scooping'] is False and time() - refuel_time < 10: #Wait for journal to report on scooping
             continue
         while ship()['is_scooping'] is False:
             send(keys['SetSpeed100'])
-            sleep(1)
+            sleep(2.5)
             send(keys['SetSpeedZero'], repeat=3)
             sleep(10)
         debug('refuel=scooping detected')
@@ -1107,17 +1105,17 @@ def position(refueled_multiplier=1):
         info('POSIT: Scanning system.')
         send(keys['SecondaryFire'], state=1)
 
-    if refueled_multiplier <= 1:
-        send(keys['SetSpeed75'])
-    send(keys['PitchUpButton'], state=1)
+    # if refueled_multiplier <= 1:
+    #     send(keys['SetSpeed75'], repeat=3)
+    PressKey(keys['PitchUpButton']['key'])
     sleep(4)
-    # send(keys['PitchUpButton'], state=0)
-    send(keys['SetSpeed100'])
+    while sun_percent() > 3:
+        PressKey(keys['PitchUpButton']['key'])
+        sleep(1) 
+    send(keys['SetSpeed100'], repeat=3)
     # send(keys['PitchUpButton'], state=1)
-    # while sun_percent() > 3:
-    #     sleep(1)
     sleep(4)
-    send(keys['PitchUpButton'], state=0)
+    ReleaseKey(keys['PitchUpButton']['key'])
     sleep(5*refueled_multiplier)
     info('POSIT: System entry positioning complete')
 
@@ -1171,7 +1169,6 @@ def safe_net(callback):
                 if ship()['status'] == "in_space" and last_ship_status == "in_supercruise":
                     critical("Ship dropped from supercurise")
                     send_discord_webhook("❌ Ship dropped from supercurise. Action required", True)
-                    callback()
                 last_ship_status = ship()['status']
                 sleep(1)
     finally:
@@ -1195,9 +1192,7 @@ total_dist_jumped = 0
 
 
 def autopilot(callback):
-    # while True:
-    #     # fine_align()
-    #     get_destination_offset()
+
     autopilot_completed = False
 
     try:
@@ -1218,6 +1213,9 @@ def autopilot(callback):
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT JUMP' + '\n' + 20 * '-' + '\n')
 
                 jump()
+
+                sleep(4) #Odyseey animation blocks input
+                send(keys['SetSpeedZero']) #Stop again just to be on the safe side
 
                 ship_status = ship()
                 total_dist_jumped += ship_status['dist_jumped']
@@ -1252,9 +1250,9 @@ def autopilot(callback):
                             jump_count / (time_token / 3600)
                         )
                     )
-
+                
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT REFUEL' + '\n' + 20 * '-' + '\n')
-
+                
                 refueled = refuel()
 
                 info('\n' + 20 * '-' + '\n' + 'AUTOPILOT POSIT' + '\n' + 20 * '-' + '\n')
